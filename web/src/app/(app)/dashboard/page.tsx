@@ -4,10 +4,28 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Droplets, Leaf, ScanLine, Thermometer } from "lucide-react";
 import { FarmMap } from "@/components/map/FarmMap";
-import { getCases, getCrops, getOutbreakAlerts, getWeather, type Crop, type DiagnosisResult, type OutbreakAlert, type WeatherSnapshot } from "@/lib/api";
+import {
+  getCases,
+  getCrops,
+  getOutbreakAlerts,
+  getWeather,
+  type Crop,
+  type DiagnosisResult,
+  type OutbreakAlert,
+  type WeatherSnapshot,
+} from "@/lib/api";
+import { usePreferences } from "@/providers/preferences-provider";
 import { cn } from "@/lib/utils";
 
+function dashboardGreeting(t: (key: string) => string) {
+  const h = new Date().getHours();
+  if (h < 12) return t("dashboard.greetingMorning");
+  if (h < 19) return t("dashboard.greetingAfternoon");
+  return t("dashboard.greetingEvening");
+}
+
 export default function DashboardPage() {
+  const { t } = usePreferences();
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [crops, setCrops] = useState<Crop[]>([]);
   const [cases, setCases] = useState<DiagnosisResult[]>([]);
@@ -22,10 +40,10 @@ export default function DashboardPage() {
           humidity_pct: 87,
           rain_mm: 6.2,
           wind_kmh: 12,
-          condition: "Humedad alta",
+          condition: t("dashboard.humidityHigh"),
           climate_risk: "alto",
           source: "demo",
-          location: "Portoviejo, Manabí",
+          location: "Portoviejo, Manab\u00ed",
         })
       );
     getCrops().then(setCrops).catch(() => setCrops([]));
@@ -33,7 +51,7 @@ export default function DashboardPage() {
     getOutbreakAlerts()
       .then((r) => setOutbreaks(r.alerts))
       .catch(() => setOutbreaks([]));
-  }, []);
+  }, [t]);
 
   const avgHealth = crops.length
     ? Math.round(crops.reduce((a, c) => a + c.health_pct, 0) / crops.length)
@@ -51,7 +69,7 @@ export default function DashboardPage() {
   const alerts = cases.slice(0, 3).map((c) => ({
     id: c.id,
     title: `${c.detection.disease} detectada`,
-    detail: `${c.detection.crop} · confianza ${Math.round(c.detection.confidence * 100)}%`,
+    detail: `${c.detection.crop} \u00b7 confianza ${Math.round(c.detection.confidence * 100)}%`,
     time: new Date(c.created_at).toLocaleString("es-EC", {
       hour: "2-digit",
       minute: "2-digit",
@@ -66,31 +84,44 @@ export default function DashboardPage() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-leaf">AgroGuardian AI</p>
-          <h1 className="font-display text-3xl sm:text-4xl text-forest mt-1">Buenos días</h1>
-          <p className="mt-1 text-sm text-ink/60 max-w-lg">
-            Sanidad vegetal en tiempo real — detecta plagas antes de que el daño sea evidente.
-          </p>
+          <h1 className="font-display text-3xl sm:text-4xl text-forest mt-1">{dashboardGreeting(t)}</h1>
+          <p className="mt-1 text-sm text-ink/60 max-w-lg">{t("dashboard.subtitle")}</p>
         </div>
         <Link
           href="/escanear"
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-leaf px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-leaf-dark transition-colors"
         >
           <ScanLine className="h-4 w-4" />
-          Escanear planta
+          {t("dashboard.scanCta")}
         </Link>
       </header>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Cultivos activos", value: String(crops.length || "—"), icon: Leaf, hint: "lotes registrados" },
-          { label: "Casos detectados", value: String(infected), icon: AlertTriangle, hint: "requieren atención" },
           {
-            label: "Riesgo climático",
-            value: weather ? weather.climate_risk.toUpperCase() : "…",
-            icon: Droplets,
-            hint: weather ? `Humedad ${weather.humidity_pct}%` : "cargando…",
+            label: t("dashboard.activeCrops"),
+            value: String(crops.length || "\u2014"),
+            icon: Leaf,
+            hint: t("dashboard.lotsRegistered"),
           },
-          { label: "Salud promedio", value: crops.length ? `${avgHealth}%` : "—", icon: Thermometer, hint: "índice foliar" },
+          {
+            label: t("dashboard.detectedCases"),
+            value: String(infected),
+            icon: AlertTriangle,
+            hint: t("dashboard.needAttention"),
+          },
+          {
+            label: t("dashboard.climateRisk"),
+            value: weather ? weather.climate_risk.toUpperCase() : "\u2026",
+            icon: Droplets,
+            hint: weather ? `Humedad ${weather.humidity_pct}%` : t("dashboard.loading"),
+          },
+          {
+            label: t("dashboard.avgHealth"),
+            value: crops.length ? `${avgHealth}%` : "\u2014",
+            icon: Thermometer,
+            hint: t("dashboard.leafIndex"),
+          },
         ].map((m) => (
           <div
             key={m.label}
@@ -110,7 +141,7 @@ export default function DashboardPage() {
         <section className="rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4 sm:p-5">
           <h2 className="font-display text-xl text-forest mb-3 flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-600" />
-            Alertas de brote zonal
+            {t("dashboard.outbreakTitle")}
           </h2>
           <ul className="space-y-2">
             {outbreaks.map((o) => (
@@ -129,34 +160,43 @@ export default function DashboardPage() {
       <section className="grid lg:grid-cols-5 gap-4">
         <div className="lg:col-span-3 rounded-2xl border border-forest/8 bg-cream/90 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-xl text-forest">Mapa de fincas</h2>
+            <h2 className="font-display text-xl text-forest">{t("dashboard.farmMap")}</h2>
             <Link href="/mapa" className="text-xs text-leaf hover:underline">
-              Ver mapa
+              {t("dashboard.viewMap")}
             </Link>
           </div>
           <FarmMap height={280} />
           <div className="mt-3 flex flex-wrap gap-3 text-xs text-ink/55">
             <span className="inline-flex items-center gap-1.5">
-              <i className="h-2.5 w-2.5 rounded-full bg-leaf" /> Sano
+              <i className="h-2.5 w-2.5 rounded-full bg-leaf" /> {t("dashboard.healthy")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <i className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Riesgo
+              <i className="h-2.5 w-2.5 rounded-full bg-amber-500" /> {t("dashboard.risk")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <i className="h-2.5 w-2.5 rounded-full bg-red-600" /> Infectado
+              <i className="h-2.5 w-2.5 rounded-full bg-red-600" /> {t("dashboard.infected")}
             </span>
           </div>
         </div>
 
         <div className="lg:col-span-2 space-y-4">
           <div className="rounded-2xl border border-forest/8 bg-cream/90 p-4 sm:p-5">
-            <h2 className="font-display text-xl text-forest mb-3">Estado de cultivos</h2>
-            <StatusRing {...ring} />
+            <h2 className="font-display text-xl text-forest mb-3">{t("dashboard.cropStatus")}</h2>
+            <StatusRing
+              healthy={ring.healthy}
+              risk={ring.risk}
+              infected={ring.infected}
+              labels={{
+                healthy: t("dashboard.statusHealthy"),
+                risk: t("dashboard.statusRisk"),
+                infected: t("dashboard.statusInfected"),
+              }}
+            />
           </div>
           <div className="rounded-2xl border border-forest/8 bg-cream/90 p-4 sm:p-5">
-            <h2 className="font-display text-xl text-forest mb-3">Alertas recientes</h2>
+            <h2 className="font-display text-xl text-forest mb-3">{t("dashboard.recentAlerts")}</h2>
             {alerts.length === 0 ? (
-              <p className="text-sm text-ink/50">Sin diagnósticos aún. Escanea una planta para empezar.</p>
+              <p className="text-sm text-ink/50">{t("dashboard.noDiagnostics")}</p>
             ) : (
               <ul className="space-y-3">
                 {alerts.map((a) => (
@@ -187,10 +227,12 @@ function StatusRing({
   healthy,
   risk,
   infected,
+  labels,
 }: {
   healthy: number;
   risk: number;
   infected: number;
+  labels: { healthy: string; risk: string; infected: string };
 }) {
   const c = 2 * Math.PI * 42;
   const h = (healthy / 100) * c;
@@ -232,15 +274,15 @@ function StatusRing({
       </svg>
       <ul className="text-sm space-y-1.5">
         <li className="flex justify-between gap-6">
-          <span className="text-ink/60">Sanos</span>
+          <span className="text-ink/60">{labels.healthy}</span>
           <strong>{healthy}%</strong>
         </li>
         <li className="flex justify-between gap-6">
-          <span className="text-ink/60">Riesgo</span>
+          <span className="text-ink/60">{labels.risk}</span>
           <strong>{risk}%</strong>
         </li>
         <li className="flex justify-between gap-6">
-          <span className="text-ink/60">Infectados</span>
+          <span className="text-ink/60">{labels.infected}</span>
           <strong>{infected}%</strong>
         </li>
       </ul>

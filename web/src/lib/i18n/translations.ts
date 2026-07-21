@@ -39,6 +39,35 @@ const es = {
     title: "Línea de tiempo sanitaria",
     empty: "Escanea plantas para construir el historial del lote",
   },
+  dashboard: {
+    greetingMorning: "Buenos días",
+    greetingAfternoon: "Buenas tardes",
+    greetingEvening: "Buenas noches",
+    subtitle:
+      "Sanidad vegetal en tiempo real - detecta plagas antes de que el daño sea evidente.",
+    scanCta: "Escanear planta",
+    activeCrops: "Cultivos activos",
+    lotsRegistered: "lotes registrados",
+    detectedCases: "Casos detectados",
+    needAttention: "requieren atención",
+    climateRisk: "Riesgo climático",
+    loading: "cargando…",
+    avgHealth: "Salud promedio",
+    leafIndex: "índice foliar",
+    outbreakTitle: "Alertas de brote zonal",
+    farmMap: "Mapa de fincas",
+    viewMap: "Ver mapa",
+    healthy: "Sano",
+    risk: "Riesgo",
+    infected: "Infectado",
+    cropStatus: "Estado de cultivos",
+    recentAlerts: "Alertas recientes",
+    noDiagnostics: "Sin diagnósticos aún. Escanea una planta para empezar.",
+    statusHealthy: "Sanos",
+    statusRisk: "Riesgo",
+    statusInfected: "Infectados",
+    humidityHigh: "Humedad alta",
+  },
 } as const;
 
 type Dictionary = {
@@ -46,6 +75,7 @@ type Dictionary = {
   settings: Record<string, string>;
   outbreak: Record<string, string>;
   timeline: Record<string, string>;
+  dashboard: Record<string, string>;
 };
 
 const en: Dictionary = {
@@ -78,6 +108,34 @@ const en: Dictionary = {
   timeline: {
     title: "Health timeline",
     empty: "Scan plants to build lot history",
+  },
+  dashboard: {
+    greetingMorning: "Good morning",
+    greetingAfternoon: "Good afternoon",
+    greetingEvening: "Good evening",
+    subtitle: "Real-time crop health - detect pests before damage is visible.",
+    scanCta: "Scan plant",
+    activeCrops: "Active crops",
+    lotsRegistered: "registered lots",
+    detectedCases: "Detected cases",
+    needAttention: "need attention",
+    climateRisk: "Climate risk",
+    loading: "loading…",
+    avgHealth: "Average health",
+    leafIndex: "leaf index",
+    outbreakTitle: "Regional outbreak alerts",
+    farmMap: "Farm map",
+    viewMap: "View map",
+    healthy: "Healthy",
+    risk: "Risk",
+    infected: "Infected",
+    cropStatus: "Crop status",
+    recentAlerts: "Recent alerts",
+    noDiagnostics: "No diagnostics yet. Scan a plant to get started.",
+    statusHealthy: "Healthy",
+    statusRisk: "Risk",
+    statusInfected: "Infected",
+    humidityHigh: "High humidity",
   },
 };
 

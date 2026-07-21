@@ -206,6 +206,45 @@ export async function createCrop(payload: {
   return normalizeCrop(await res.json());
 }
 
+export async function updateFarm(
+  id: string,
+  payload: { name?: string; lat?: number; lng?: number; area_ha?: number; health_status?: Farm["health_status"] }
+) {
+  const res = await apiFetch(`/api/farms/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return normalizeFarm(await res.json());
+}
+
+export async function deleteFarm(id: string) {
+  await apiFetch(`/api/farms/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export async function updateCrop(
+  id: string,
+  payload: {
+    name?: string;
+    variety?: string;
+    growth_stage?: string;
+    health_pct?: number;
+    status?: Crop["status"];
+    hectares?: number;
+  }
+) {
+  const res = await apiFetch(`/api/farms/crops/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return normalizeCrop(await res.json());
+}
+
+export async function deleteCrop(id: string) {
+  await apiFetch(`/api/farms/crops/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
 export async function getDashboardStats() {
   const res = await apiFetch("/api/dashboard/stats", { cache: "no-store" });
   return res.json() as Promise<DashboardStats>;

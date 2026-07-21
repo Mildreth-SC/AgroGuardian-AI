@@ -93,15 +93,108 @@ export async function userHasFarm(client: SupabaseClient, userId: string) {
 export async function listFarms(client: SupabaseClient, userId: string) {
   const { data } = await client
     .from("farms")
-    .select("id,name,lat,lng,health_status")
+    .select("id,name,lat,lng,area_ha,health_status,owner_id,created_at")
     .eq("owner_id", userId);
   return (data ?? []).map((row) => ({
     id: row.id as string,
     name: row.name as string,
     lat: row.lat as number | undefined,
     lng: row.lng as number | undefined,
+    area_ha: Number(row.area_ha ?? 1),
+    health_status: (row.health_status as string) ?? "sano",
     status: (row.health_status as string) ?? "sano",
+    owner_id: row.owner_id as string,
+    created_at: row.created_at as string | undefined,
   }));
+}
+
+export async function userOwnsFarm(client: SupabaseClient, userId: string, farmId: string) {
+  const { data } = await client
+    .from("farms")
+    .select("id")
+    .eq("owner_id", userId)
+    .eq("id", farmId)
+    .maybeSingle();
+  return Boolean(data?.id);
+}
+
+export async function insertFarm(
+  client: SupabaseClient,
+  userId: string,
+  payload: { name: string; lat?: number; lng?: number; area_ha?: number }
+) {
+  await upsertProfile(client, userId);
+  const { data, error } = await client
+    .from("farms")
+    .insert({
+      owner_id: userId,
+      name: payload.name,
+      lat: payload.lat ?? -1.0547,
+      lng: payload.lng ?? -80.4545,
+      area_ha: payload.area_ha ?? 1,
+      health_status: "sano",
+    })
+    .select("id,name,lat,lng,area_ha,health_status,owner_id,created_at")
+    .single();
+  if (error || !data) throw error ?? new Error("No se pudo crear la finca");
+  return {
+    id: data.id as string,
+    name: data.name as string,
+    lat: data.lat as number | undefined,
+    lng: data.lng as number | undefined,
+    area_ha: Number(data.area_ha ?? 1),
+    health_status: (data.health_status as string) ?? "sano",
+    status: (data.health_status as string) ?? "sano",
+    owner_id: data.owner_id as string,
+    created_at: data.created_at as string | undefined,
+  };
+}
+
+export async function updateFarm(
+  client: SupabaseClient,
+  userId: string,
+  farmId: string,
+  payload: { name?: string; lat?: number; lng?: number; area_ha?: number; health_status?: string }
+) {
+  const patch: Record<string, unknown> = {};
+  if (payload.name !== undefined) patch.name = payload.name;
+  if (payload.lat !== undefined) patch.lat = payload.lat;
+  if (payload.lng !== undefined) patch.lng = payload.lng;
+  if (payload.area_ha !== undefined) patch.area_ha = payload.area_ha;
+  if (payload.health_status !== undefined) patch.health_status = payload.health_status;
+
+  const { data, error } = await client
+    .from("farms")
+    .update(patch)
+    .eq("owner_id", userId)
+    .eq("id", farmId)
+    .select("id,name,lat,lng,area_ha,health_status,owner_id,created_at")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Finca no encontrada");
+  return {
+    id: data.id as string,
+    name: data.name as string,
+    lat: data.lat as number | undefined,
+    lng: data.lng as number | undefined,
+    area_ha: Number(data.area_ha ?? 1),
+    health_status: (data.health_status as string) ?? "sano",
+    status: (data.health_status as string) ?? "sano",
+    owner_id: data.owner_id as string,
+    created_at: data.created_at as string | undefined,
+  };
+}
+
+export async function deleteFarm(client: SupabaseClient, userId: string, farmId: string) {
+  const { data, error } = await client
+    .from("farms")
+    .delete()
+    .eq("owner_id", userId)
+    .eq("id", farmId)
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Finca no encontrada");
 }
 
 export async function listCrops(client: SupabaseClient, userId: string) {
@@ -111,18 +204,127 @@ export async function listCrops(client: SupabaseClient, userId: string) {
 
   const { data } = await client
     .from("crops")
-    .select("id,name,variety,growth_stage,health_pct,status")
+    .select("id,farm_id,name,variety,growth_stage,health_pct,status")
     .in("farm_id", farmIds);
 
   return (data ?? []).map((row) => ({
     id: row.id as string,
+    farm_id: row.farm_id as string,
     name: row.name as string,
     variety: row.variety as string | undefined,
-    stage: (row.growth_stage as string) ?? "—",
+    growth_stage: (row.growth_stage as string) ?? "Desarrollo",
+    stage: (row.growth_stage as string) ?? "Desarrollo",
+    health_pct: (row.health_pct as number) ?? 80,
     health: (row.health_pct as number) ?? 80,
     status: (row.status as "sano" | "riesgo" | "infectado") ?? "sano",
     hectares: 1.0,
   }));
+}
+
+export async function insertCrop(
+  client: SupabaseClient,
+  userId: string,
+  payload: {
+    farm_id: string;
+    name: string;
+    variety?: string;
+    growth_stage?: string;
+    hectares?: number;
+  }
+) {
+  const owns = await userOwnsFarm(client, userId, payload.farm_id);
+  if (!owns) throw new Error("farm_id no existe");
+
+  const { data, error } = await client
+    .from("crops")
+    .insert({
+      farm_id: payload.farm_id,
+      name: payload.name,
+      variety: payload.variety ?? "",
+      growth_stage: payload.growth_stage ?? "Desarrollo",
+      health_pct: 90,
+      status: "sano",
+    })
+    .select("id,farm_id,name,variety,growth_stage,health_pct,status")
+    .single();
+  if (error || !data) throw error ?? new Error("No se pudo crear el cultivo");
+
+  return {
+    id: data.id as string,
+    farm_id: data.farm_id as string,
+    name: data.name as string,
+    variety: (data.variety as string) ?? "",
+    growth_stage: (data.growth_stage as string) ?? "Desarrollo",
+    stage: (data.growth_stage as string) ?? "Desarrollo",
+    health_pct: (data.health_pct as number) ?? 90,
+    health: (data.health_pct as number) ?? 90,
+    status: (data.status as "sano" | "riesgo" | "infectado") ?? "sano",
+    hectares: payload.hectares ?? 1,
+  };
+}
+
+export async function updateCrop(
+  client: SupabaseClient,
+  userId: string,
+  cropId: string,
+  payload: {
+    name?: string;
+    variety?: string;
+    growth_stage?: string;
+    health_pct?: number;
+    status?: "sano" | "riesgo" | "infectado";
+    hectares?: number;
+  }
+) {
+  const farms = await listFarms(client, userId);
+  const farmIds = farms.map((f) => f.id);
+  if (!farmIds.length) throw new Error("Cultivo no encontrado");
+
+  const patch: Record<string, unknown> = {};
+  if (payload.name !== undefined) patch.name = payload.name;
+  if (payload.variety !== undefined) patch.variety = payload.variety;
+  if (payload.growth_stage !== undefined) patch.growth_stage = payload.growth_stage;
+  if (payload.health_pct !== undefined) patch.health_pct = payload.health_pct;
+  if (payload.status !== undefined) patch.status = payload.status;
+
+  const { data, error } = await client
+    .from("crops")
+    .update(patch)
+    .eq("id", cropId)
+    .in("farm_id", farmIds)
+    .select("id,farm_id,name,variety,growth_stage,health_pct,status")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Cultivo no encontrado");
+
+  return {
+    id: data.id as string,
+    farm_id: data.farm_id as string,
+    name: data.name as string,
+    variety: (data.variety as string) ?? "",
+    growth_stage: (data.growth_stage as string) ?? "Desarrollo",
+    stage: (data.growth_stage as string) ?? "Desarrollo",
+    health_pct: (data.health_pct as number) ?? 80,
+    health: (data.health_pct as number) ?? 80,
+    status: (data.status as "sano" | "riesgo" | "infectado") ?? "sano",
+    hectares: payload.hectares ?? 1,
+  };
+}
+
+export async function deleteCrop(client: SupabaseClient, userId: string, cropId: string) {
+  const farms = await listFarms(client, userId);
+  const farmIds = farms.map((f) => f.id);
+  if (!farmIds.length) throw new Error("Cultivo no encontrado");
+
+  const { data, error } = await client
+    .from("crops")
+    .delete()
+    .eq("id", cropId)
+    .in("farm_id", farmIds)
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Cultivo no encontrado");
 }
 
 export async function dashboardStats(client: SupabaseClient, userId: string) {

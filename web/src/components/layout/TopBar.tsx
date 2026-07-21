@@ -5,17 +5,19 @@ import { Bell, ChevronDown, HelpCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getFarms, type Farm } from "@/lib/api";
 import { ALERTS } from "@/lib/mock-data";
+import { usePreferences } from "@/providers/preferences-provider";
 import { cn } from "@/lib/utils";
 
-function greeting() {
+function greeting(t: (key: string) => string) {
   const h = new Date().getHours();
-  if (h < 12) return "Buenos días";
-  if (h < 19) return "Buenas tardes";
-  return "Buenas noches";
+  if (h < 12) return t("dashboard.greetingMorning");
+  if (h < 19) return t("dashboard.greetingAfternoon");
+  return t("dashboard.greetingEvening");
 }
 
 export function TopBar() {
   const { user } = useUser();
+  const { t } = usePreferences();
   const [farms, setFarms] = useState<Farm[]>([]);
   const [farmId, setFarmId] = useState<string>("");
   const [showAlerts, setShowAlerts] = useState(false);
@@ -42,7 +44,7 @@ export function TopBar() {
         <div className="min-w-0">
           <p className="text-xs text-ink/45 hidden sm:block">Panel de control</p>
           <h2 className="font-display text-lg sm:text-xl text-forest truncate">
-            {greeting()}, {firstName}
+            {greeting(t)}, {firstName}
           </h2>
         </div>
 
