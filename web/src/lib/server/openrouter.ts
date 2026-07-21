@@ -41,7 +41,9 @@ function isModelUnavailable(err: unknown) {
     msg.includes("404") ||
     msg.includes("unavailable") ||
     msg.includes("no endpoints") ||
-    msg.includes("not found")
+    msg.includes("not found") ||
+    msg.includes("respondió vacío") ||
+    msg.includes("respondio vacio")
   );
 }
 
@@ -103,8 +105,18 @@ export async function chatCompletion(
       temperature: opts?.temperature ?? 0.2,
       max_tokens: opts?.maxTokens ?? 1200,
     });
-    const text = (res.choices[0]?.message?.content ?? "").trim();
-    if (!text) throw new Error(`Modelo ${model} respondió vacío`);
+    const choice = res.choices[0]?.message;
+    const text = (choice?.content ?? "").trim();
+    if (!text) {
+      const reasoning = String(
+        (choice as { reasoning?: string; reasoning_content?: string } | undefined)
+          ?.reasoning ??
+          (choice as { reasoning_content?: string } | undefined)?.reasoning_content ??
+          ""
+      ).trim();
+      if (reasoning) return reasoning;
+      throw new Error(`Modelo ${model} respondió vacío`);
+    }
     return text;
   });
 }
@@ -140,7 +152,7 @@ export async function probeOpenRouter(cfg: AppConfig) {
   if (!hasOpenRouter(cfg)) return { ok: false, detail: "sin clave" };
   try {
     await chatCompletion(cfg, [{ role: "user", content: "Responde solo: OK" }], {
-      maxTokens: 5,
+      maxTokens: 32,
       temperature: 0,
     });
     return { ok: true, detail: "texto OK" };
