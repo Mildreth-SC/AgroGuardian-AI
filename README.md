@@ -65,3 +65,48 @@ AgroGuardian-AI/
   backend/           # FastAPI legacy (opcional en local)
   supabase/          # SQL schema + RLS
 ```
+
+## Demo en producción
+
+- **App:** https://agroguardian-ai-six.vercel.app
+- **Health check:** `/api/health?probe=1` (OpenAI + Supabase)
+- **Flujo E2E:** registro → onboarding → escanear foto → agentes IA → PDF → historial → asistente chat
+
+## Herramientas OpenAI utilizadas
+
+| Herramienta | Uso en AgroGuardian |
+|-------------|---------------------|
+| **OpenAI API (GPT-4o-mini)** | Visión: detección de enfermedades en hoja/planta. Texto: diagnóstico agronómico, chat asistente, salidas JSON estructuradas. |
+| **SDK `openai` (Node.js)** | Cliente oficial en `web/src/lib/server/openrouter.ts` contra `api.openai.com`. |
+| **Codex / Cursor Agent** | Construcción del pipeline de agentes, integración Next.js + Supabase + despliegue Vercel. |
+| **OpenRouter (respaldo)** | Fallback opcional si OpenAI no responde; no reemplaza el proveedor principal del reto. |
+
+Orquestación de agentes: pipeline propio de 4 agentes (Detector → Clima → Agrónomo → Reporte) con trazas `agent_trace` expuestas en UI.
+
+## Contribución a los ODS (Agenda 2030)
+
+| ODS | Cómo contribuye AgroGuardian | Indicador de impacto propuesto |
+|-----|------------------------------|--------------------------------|
+| **ODS 2 — Hambre cero** | Detección temprana de plagas/enfermedades en plátano, cacao, maíz, café y arroz de Manabí → menos pérdida de cosecha. | Nº diagnósticos/mes; % casos con tratamiento iniciado &lt;72 h. |
+| **ODS 12 — Producción responsable** | Recomendaciones focalizadas (no aplicación ciega de agroquímicos); alertas de brotes y clima. | Nº recomendaciones prioridad 1 ejecutadas vs. total. |
+| **ODS 15 — Vida de ecosistemas** | Monitoreo de sanidad vegetal + enciclopedia de enfermedades; reduce propagación y uso innecesario de químicos. | Hectáreas monitoreadas; alertas de brote emitidas por zona. |
+
+## Validación del problema (sector real)
+
+La problemática está alineada con el contexto agroproductivo de **Manabí, Ecuador**:
+
+- Cultivos prioritarios de la costa ecuatoriana: plátano/banano (sigatoka), cacao (moniliasis), maíz (roya), café y arroz.
+- Referencias técnicas: guías del **MAG Ecuador** e **INIAP** sobre sanidad vegetal y manejo integrado de plagas.
+- Entrevistas / prueba de concepto: validar con extensionistas rurales o cooperativas de Portoviejo, Chone o Jipijapa (completar contacto y fecha en la presentación del reto).
+
+## Trazabilidad y supervisión humana
+
+- Cada diagnóstico incluye **`agent_trace`** (agente, estado, duración, resumen).
+- El asistente muestra **fuentes** de cada respuesta (clima Open-Meteo, historial de finca, modelo IA).
+- Bloque **“Datos de entrada”** en escaneo: imagen, clima, confianza y señales visuales.
+- **Disclaimer** visible: las recomendaciones no sustituyen agrónomo/extensionista; decisiones críticas requieren validación humana.
+
+## Repositorio
+
+https://github.com/Mildreth-SC/AgroGuardian-AI
+

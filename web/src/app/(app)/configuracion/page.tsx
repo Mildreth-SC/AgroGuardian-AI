@@ -13,6 +13,7 @@ export default function ConfigPage() {
     openai?: boolean;
     openrouter: boolean;
     ai_provider?: "openai" | "openrouter" | null;
+    ai_live?: { ok: boolean; detail: string; provider: string | null };
     openweather: boolean;
     supabase: boolean;
     models: { text: string; vision: string };
@@ -46,6 +47,16 @@ export default function ConfigPage() {
               {health.ai_provider === "openai" ? " (activo)" : ""}
             </li>
             <li>OpenRouter: {health.openrouter ? "conectado (respaldo)" : "sin clave"}</li>
+            <li>
+              Proveedor IA activo:{" "}
+              <strong>{health.ai_provider ?? "ninguno"}</strong>
+              {health.ai_live ? (
+                <span className={health.ai_live.ok ? " text-leaf" : " text-amber-800"}>
+                  {" "}
+                  · probe {health.ai_live.ok ? "OK" : "falló"}
+                </span>
+              ) : null}
+            </li>
             <li>
               Modelo texto: <code className="text-xs">{health.models?.text}</code>
             </li>

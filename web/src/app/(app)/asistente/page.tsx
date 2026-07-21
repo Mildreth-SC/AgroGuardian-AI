@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { Loader2, Send } from "lucide-react";
+import { AiDisclaimer } from "@/components/ai/AiDisclaimer";
 import { chatAssistant } from "@/lib/api";
 
 type Msg = { role: "user" | "assistant"; content: string; sources?: string[] };
@@ -56,6 +57,9 @@ export default function AsistentePage() {
       <header className="mb-4">
         <p className="text-xs uppercase tracking-[0.2em] text-leaf">Copiloto</p>
         <h1 className="font-display text-3xl text-forest mt-1">Asistente IA</h1>
+        <div className="mt-3">
+          <AiDisclaimer compact />
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto rounded-2xl border border-forest/10 bg-cream p-4 space-y-3">

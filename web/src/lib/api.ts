@@ -137,6 +137,7 @@ export async function getHealth() {
     openai?: boolean;
     openrouter: boolean;
     ai_provider?: "openai" | "openrouter" | null;
+    ai_live?: { ok: boolean; detail: string; provider: string | null };
     openweather: boolean;
     supabase: boolean;
     models: { text: string; vision: string };
