@@ -38,6 +38,12 @@ const MODULES = [
     desc: "Tu agrónomo 24/7 en español. Pregunta sobre plagas, siembra y mercados en Manabí.",
   },
   {
+    id: "encyclopedia",
+    icon: Shield,
+    title: "Enciclopedia de enfermedades",
+    desc: "10+ protocolos para Sigatoka, roya, monilia y más — escalable por catálogo.",
+  },
+  {
     id: "map",
     icon: Map,
     title: "Mapa de fincas",

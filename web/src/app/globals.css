@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-:root {
+:root,
+[data-theme="field"] {
   --forest: #14281d;
   --leaf: #2d6a4f;
   --leaf-dark: #1b4332;
@@ -9,6 +10,51 @@
   --cream: #f7faf7;
   --ink: #122018;
   --sand: #d8e2d9;
+  --accent: #2d6a4f;
+  --sidebar-bg: #14281d;
+  --sidebar-text: #f7faf7;
+}
+
+[data-theme="dark"] {
+  --forest: #0a1510;
+  --leaf: #40916c;
+  --leaf-dark: #2d6a4f;
+  --leaf-light: #74c69d;
+  --mist: #0d1f17;
+  --cream: #152820;
+  --ink: #e8f0ea;
+  --sand: #1e3a2f;
+  --accent: #52b788;
+  --sidebar-bg: #060f0b;
+  --sidebar-text: #d8f3dc;
+}
+
+[data-theme="sunset"] {
+  --forest: #3d1c02;
+  --leaf: #c45c26;
+  --leaf-dark: #9a3412;
+  --leaf-light: #fdba74;
+  --mist: #fff7ed;
+  --cream: #ffedd5;
+  --ink: #431407;
+  --sand: #fed7aa;
+  --accent: #ea580c;
+  --sidebar-bg: #431407;
+  --sidebar-text: #ffedd5;
+}
+
+[data-theme="ocean"] {
+  --forest: #023047;
+  --leaf: #0077b6;
+  --leaf-dark: #005f8a;
+  --leaf-light: #90e0ef;
+  --mist: #e8f4f8;
+  --cream: #f0f9ff;
+  --ink: #023047;
+  --sand: #caf0f8;
+  --accent: #0096c7;
+  --sidebar-bg: #023047;
+  --sidebar-text: #f0f9ff;
 }
 
 @theme inline {
@@ -70,7 +116,11 @@ body {
 
 .bg-field {
   background-image:
-    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(45, 106, 79, 0.18), transparent),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(149, 213, 178, 0.25), transparent),
-    linear-gradient(180deg, #eef4ef 0%, #e4ede6 100%);
+    radial-gradient(ellipse 80% 50% at 10% -10%, color-mix(in srgb, var(--leaf) 18%, transparent), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, color-mix(in srgb, var(--leaf-light) 25%, transparent), transparent),
+    linear-gradient(180deg, var(--mist) 0%, var(--sand) 100%);
+}
+
+[data-theme="dark"] .bg-field {
+  background-image: linear-gradient(180deg, var(--mist) 0%, var(--forest) 100%);
 }

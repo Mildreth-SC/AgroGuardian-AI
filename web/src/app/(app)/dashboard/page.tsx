@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Droplets, Leaf, ScanLine, Thermometer } from "lucide-react";
 import { FarmMap } from "@/components/map/FarmMap";
-import { getCases, getCrops, getWeather, type Crop, type DiagnosisResult, type WeatherSnapshot } from "@/lib/api";
+import { getCases, getCrops, getOutbreakAlerts, getWeather, type Crop, type DiagnosisResult, type OutbreakAlert, type WeatherSnapshot } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [crops, setCrops] = useState<Crop[]>([]);
   const [cases, setCases] = useState<DiagnosisResult[]>([]);
+  const [outbreaks, setOutbreaks] = useState<OutbreakAlert[]>([]);
 
   useEffect(() => {
     getWeather()
@@ -29,6 +30,9 @@ export default function DashboardPage() {
       );
     getCrops().then(setCrops).catch(() => setCrops([]));
     getCases().then(setCases).catch(() => setCases([]));
+    getOutbreakAlerts()
+      .then((r) => setOutbreaks(r.alerts))
+      .catch(() => setOutbreaks([]));
   }, []);
 
   const avgHealth = crops.length
@@ -101,6 +105,26 @@ export default function DashboardPage() {
           </div>
         ))}
       </section>
+
+      {outbreaks.length > 0 && (
+        <section className="rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4 sm:p-5">
+          <h2 className="font-display text-xl text-forest mb-3 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            Alertas de brote zonal
+          </h2>
+          <ul className="space-y-2">
+            {outbreaks.map((o) => (
+              <li
+                key={o.id}
+                className="rounded-xl border border-amber-200/60 bg-white/70 px-3 py-2.5 text-sm"
+              >
+                <p className="font-medium text-ink">{o.disease}</p>
+                <p className="text-xs text-ink/60 mt-0.5">{o.message}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="grid lg:grid-cols-5 gap-4">
         <div className="lg:col-span-3 rounded-2xl border border-forest/8 bg-cream/90 p-4 sm:p-5">

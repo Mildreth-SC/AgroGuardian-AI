@@ -218,6 +218,20 @@ export default function EscanearPage() {
 
           <p className="text-sm leading-relaxed text-ink/80">{result.diagnosis}</p>
 
+          {result.detection.alternatives && result.detection.alternatives.length > 0 && (
+            <div className="rounded-xl border border-forest/10 bg-mist/50 px-3 py-2.5">
+              <p className="text-xs font-medium text-ink/50 mb-2">Segunda opinión IA</p>
+              <ul className="space-y-1">
+                {result.detection.alternatives.map((alt) => (
+                  <li key={alt.disease} className="flex justify-between text-xs">
+                    <span>{alt.disease}</span>
+                    <span className="text-ink/45">{pct(alt.confidence)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="grid sm:grid-cols-3 gap-2 text-xs">
             <Metric label="Temp" value={`${result.weather.temperature_c}°C`} />
             <Metric label="Humedad" value={`${result.weather.humidity_pct}%`} />

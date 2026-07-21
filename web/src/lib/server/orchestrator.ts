@@ -35,6 +35,10 @@ function demoDetection(cropHint?: string | null): DiseaseDetection {
     risk_level: "alto",
     rationale:
       "Manchas necróticas alargadas con borde amarillo en el limbo foliar, patrón típico de Mycosphaerella fijiensis en plátano.",
+    alternatives: [
+      { disease: "Sigatoka amarilla", confidence: 0.04 },
+      { disease: "Deficiencia nutricional", confidence: 0.02 },
+    ],
   };
 }
 
@@ -128,6 +132,9 @@ export async function runDiagnosisPipeline(
       affected_part: String(payload.affected_part ?? "hoja"),
       risk_level: String(payload.risk_level ?? "medio").toLowerCase() as RiskLevel,
       rationale: String(payload.rationale ?? ""),
+      alternatives: Array.isArray(payload.alternatives)
+        ? (payload.alternatives as { disease: string; confidence: number }[]).slice(0, 3)
+        : undefined,
     };
     pushTrace({
       agent: "Disease Detector",

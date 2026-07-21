@@ -7,6 +7,7 @@ export type DiseaseDetection = {
   affected_part: string;
   risk_level: RiskLevel;
   rationale: string;
+  alternatives?: { disease: string; confidence: number }[];
 };
 
 export type WeatherSnapshot = {

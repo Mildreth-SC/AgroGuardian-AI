@@ -23,6 +23,7 @@ export type DiagnosisResult = {
     affected_part: string;
     risk_level: RiskLevel;
     rationale: string;
+    alternatives?: { disease: string; confidence: number }[];
   };
   weather: {
     temperature_c: number;
@@ -323,6 +324,26 @@ export async function diagnoseImageStream(
 export async function getCases() {
   const res = await apiFetch("/api/cases", { cache: "no-store" });
   return res.json() as Promise<DiagnosisResult[]>;
+}
+
+export type OutbreakAlert = {
+  id: string;
+  disease: string;
+  count: number;
+  level: string;
+  message: string;
+  climate_factor: string;
+};
+
+export async function getOutbreakAlerts() {
+  const res = await apiFetch("/api/outbreak-alerts", { cache: "no-store" });
+  return res.json() as Promise<{ alerts: OutbreakAlert[]; climate_risk: string }>;
+}
+
+export async function getDiseaseCatalog() {
+  const res = await fetch(`${apiBase()}/api/diseases`, { cache: "no-store" });
+  if (!res.ok) throw new Error("No se pudo cargar el catálogo");
+  return res.json();
 }
 
 export async function chatAssistant(message: string, history: { role: string; content: string }[] = []) {

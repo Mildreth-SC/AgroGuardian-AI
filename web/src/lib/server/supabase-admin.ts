@@ -160,19 +160,39 @@ export async function saveDetection(
   result: DiagnosisResult
 ) {
   const det = result.detection;
-  const { data: ins } = await client
+  const payloadTrace = {
+    agent: "Payload",
+    status: "stored",
+    summary: "Diagnóstico completo",
+    duration_ms: 0,
+    data: {
+      payload: {
+        weather: result.weather,
+        diagnosis: result.diagnosis,
+        recommendations: result.recommendations,
+        follow_up: result.follow_up,
+        demo: result.demo,
+        alternatives: det.alternatives,
+      },
+    },
+  };
+
+  const { data: ins, error } = await client
     .from("detections")
     .insert({
+      id: result.id,
       owner_id: userId,
       disease: det.disease,
       confidence: det.confidence,
       risk_level: det.risk_level,
       affected_part: det.affected_part,
       rationale: det.rationale,
-      agent_trace: result.agent_trace,
+      agent_trace: [...result.agent_trace, payloadTrace],
     })
     .select("id")
     .single();
+
+  if (error) throw error;
 
   if (ins?.id && result.recommendations.length) {
     await client.from("recommendations").insert(
@@ -185,4 +205,61 @@ export async function saveDetection(
       }))
     );
   }
+}
+
+function extractPayload(trace: unknown): Record<string, unknown> | null {
+  if (!Array.isArray(trace)) return null;
+  for (const item of trace) {
+    const row = item as { agent?: string; data?: { payload?: Record<string, unknown> } };
+    if (row.agent === "Payload" && row.data?.payload) return row.data.payload;
+  }
+  return null;
+}
+
+export async function listDetections(client: SupabaseClient, userId: string) {
+  const { data, error } = await client
+    .from("detections")
+    .select("id,disease,confidence,risk_level,affected_part,rationale,agent_trace,created_at")
+    .eq("owner_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const payload = extractPayload(row.agent_trace);
+    const recs = (payload?.recommendations as DiagnosisResult["recommendations"]) ?? [];
+    const weather = (payload?.weather as DiagnosisResult["weather"]) ?? {
+      temperature_c: 28,
+      humidity_pct: 75,
+      rain_mm: 0,
+      wind_kmh: 10,
+      condition: "—",
+      climate_risk: "medio" as const,
+      source: "stored",
+      location: "Manabí",
+    };
+    return {
+      id: row.id as string,
+      created_at: row.created_at as string,
+      detection: {
+        disease: row.disease as string,
+        crop: "Cultivo",
+        confidence: Number(row.confidence),
+        affected_part: (row.affected_part as string) ?? "hoja",
+        risk_level: row.risk_level as DiagnosisResult["detection"]["risk_level"],
+        rationale: (row.rationale as string) ?? "",
+        alternatives: payload?.alternatives as DiagnosisResult["detection"]["alternatives"],
+      },
+      weather,
+      diagnosis: (payload?.diagnosis as string) ?? "",
+      recommendations: recs,
+      follow_up: (payload?.follow_up as DiagnosisResult["follow_up"]) ?? {
+        check_in_hours: 72,
+        steps: [],
+      },
+      agent_trace: (row.agent_trace as DiagnosisResult["agent_trace"]) ?? [],
+      demo: Boolean(payload?.demo),
+    } satisfies DiagnosisResult;
+  });
 }

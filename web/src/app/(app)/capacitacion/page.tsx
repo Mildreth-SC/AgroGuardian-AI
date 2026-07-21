@@ -66,6 +66,12 @@ export default function CapacitacionPage() {
           </p>
         </div>
         <Link
+          href="/enfermedades"
+          className="rounded-xl border border-leaf/30 bg-white px-4 py-2.5 text-sm font-medium text-leaf hover:bg-leaf/5 shrink-0"
+        >
+          Enciclopedia
+        </Link>
+        <Link
           href="/escanear"
           className="rounded-xl bg-leaf px-4 py-2.5 text-sm font-medium text-white hover:bg-leaf-dark shrink-0"
         >
