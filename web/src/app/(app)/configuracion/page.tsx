@@ -10,7 +10,9 @@ export default function ConfigPage() {
   const [health, setHealth] = useState<{
     status: string;
     demo_mode: boolean;
+    openai?: boolean;
     openrouter: boolean;
+    ai_provider?: "openai" | "openrouter" | null;
     openweather: boolean;
     supabase: boolean;
     models: { text: string; vision: string };
@@ -39,7 +41,11 @@ export default function ConfigPage() {
               API: <strong className="text-leaf">{health.status}</strong>
             </li>
             <li>Demo mode: {health.demo_mode ? "sí" : "no"}</li>
-            <li>OpenRouter: {health.openrouter ? "conectado" : "sin clave"}</li>
+            <li>
+              OpenAI: {health.openai ? "conectado" : "sin clave"}
+              {health.ai_provider === "openai" ? " (activo)" : ""}
+            </li>
+            <li>OpenRouter: {health.openrouter ? "conectado (respaldo)" : "sin clave"}</li>
             <li>
               Modelo texto: <code className="text-xs">{health.models?.text}</code>
             </li>

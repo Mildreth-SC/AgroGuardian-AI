@@ -1,5 +1,8 @@
 export function getConfig() {
   return {
+    openaiApiKey: process.env.OPENAI_API_KEY ?? "",
+    openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+    openaiVisionModel: process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini",
     openrouterApiKey: process.env.OPENROUTER_API_KEY ?? "",
     openrouterModel:
       process.env.OPENROUTER_MODEL ?? "openai/gpt-oss-20b:free",
@@ -17,8 +20,31 @@ export function getConfig() {
 
 export type AppConfig = ReturnType<typeof getConfig>;
 
+export function hasOpenAI(cfg: AppConfig) {
+  return Boolean(cfg.openaiApiKey.trim());
+}
+
 export function hasOpenRouter(cfg: AppConfig) {
   return Boolean(cfg.openrouterApiKey.trim());
+}
+
+/** OpenAI first; OpenRouter as optional fallback provider. */
+export function hasAI(cfg: AppConfig) {
+  return hasOpenAI(cfg) || hasOpenRouter(cfg);
+}
+
+export function aiProvider(cfg: AppConfig): "openai" | "openrouter" | null {
+  if (hasOpenAI(cfg)) return "openai";
+  if (hasOpenRouter(cfg)) return "openrouter";
+  return null;
+}
+
+export function aiTextModel(cfg: AppConfig) {
+  return hasOpenAI(cfg) ? cfg.openaiModel : cfg.openrouterModel;
+}
+
+export function aiVisionModel(cfg: AppConfig) {
+  return hasOpenAI(cfg) ? cfg.openaiVisionModel : cfg.openrouterVisionModel;
 }
 
 export function hasSupabase(cfg: AppConfig) {

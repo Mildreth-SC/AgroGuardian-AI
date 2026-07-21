@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getConfig, hasOpenRouter } from "@/lib/server/config";
-import { chatCompletion } from "@/lib/server/openrouter";
+import { getConfig, hasAI } from "@/lib/server/config";
+import { aiSourceLabel, chatCompletion } from "@/lib/server/openrouter";
 import { demoWeather, fetchWeather } from "@/lib/server/weather";
 
 export async function POST(req: NextRequest) {
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const sources = [`Clima (${climate.source})`, "Historial de finca"];
 
-  if (cfg.demoMode && !hasOpenRouter(cfg)) {
+  if (cfg.demoMode && !hasAI(cfg)) {
     return NextResponse.json({
       reply: `Respecto a «${body.message}»: con humedad del ${climate.humidity_pct}% y condición «${climate.condition}», el riesgo es ${climate.climate_risk}. (Modo demo)`,
       sources,
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const reply = await chatCompletion(cfg, messages);
-    sources.push(`${cfg.openrouterModel} vía OpenRouter`);
+    sources.push(aiSourceLabel(cfg));
     return NextResponse.json({ reply, sources, demo: false });
   } catch (e) {
     return NextResponse.json(

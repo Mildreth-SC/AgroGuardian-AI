@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { AppConfig } from "./config";
-import { hasOpenRouter } from "./config";
+import { hasAI } from "./config";
 import { chatCompletion, extractJson, visionAnalyze } from "./openrouter";
 import { demoWeather, fetchWeather } from "./weather";
 import type {
@@ -108,7 +108,7 @@ export async function runDiagnosisPipeline(
     traces.push(trace);
     opts.onProgress?.(trace);
   };
-  const useDemo = cfg.demoMode && !hasOpenRouter(cfg);
+  const useDemo = cfg.demoMode && !hasAI(cfg);
 
   let t0 = Date.now();
   let detection: DiseaseDetection;

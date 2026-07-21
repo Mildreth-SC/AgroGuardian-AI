@@ -10,7 +10,7 @@ Plataforma de **sanidad vegetal** para agricultores de Manabí: foto de hoja →
 |------|------------|
 | Frontend + API | Next.js 16 (App Router, `/api/*`) |
 | Auth | **Clerk** |
-| IA | **OpenRouter** — modelos gratuitos (`:free`) |
+| IA | **OpenAI API** (GPT-4o-mini texto + visión) · OpenRouter opcional como respaldo |
 | Clima | **Open-Meteo** (gratis) |
 | Datos | **Supabase** |
 | Legacy | `backend/` FastAPI (opcional, no necesario en Vercel) |
@@ -21,7 +21,8 @@ Plataforma de **sanidad vegetal** para agricultores de Manabí: foto de hoja →
 2. Variables de entorno (ver `web/.env.example`):
    - Clerk: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, URLs de sign-in/up
    - Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-   - OpenRouter: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL=openai/gpt-oss-20b:free`, `OPENROUTER_VISION_MODEL=google/gemma-4-31b-it:free`
+   - **OpenAI:** `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-4o-mini`, `OPENAI_VISION_MODEL=gpt-4o-mini`
+   - OpenRouter (opcional): `OPENROUTER_API_KEY`, modelos `:free` como respaldo
 3. **No uses** `NEXT_PUBLIC_API_URL` apuntando a `:8000` — la API corre en el mismo dominio
 4. En Clerk Dashboard agrega tu dominio `*.vercel.app`
 5. Ejecuta migraciones SQL en Supabase (`supabase/migrations/`)
@@ -37,11 +38,11 @@ npm run dev
 
 App: http://localhost:3000
 
-### Supabase + OpenRouter
+### OpenAI + Supabase
 
-1. Ejecuta `001_schema.sql` y `002_rls_policies.sql` en Supabase
-2. Crea API key en [openrouter.ai](https://openrouter.ai) y ponla en `web/.env.local`
-3. Sin `OPENROUTER_API_KEY` corre en **modo demo**
+1. Ejecuta migraciones SQL en Supabase (`supabase/migrations/`)
+2. Crea API key en [platform.openai.com](https://platform.openai.com) → `OPENAI_API_KEY` en `web/.env.local`
+3. OpenRouter es **opcional** (respaldo); sin ninguna clave IA y `DEMO_MODE=true` corre en modo demo
 
 ### PWA y cámara (Escanear)
 
