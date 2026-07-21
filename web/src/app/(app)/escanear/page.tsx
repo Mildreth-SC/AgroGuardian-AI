@@ -1,0 +1,233 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, Sparkles } from "lucide-react";
+import { CameraCapture, ImageDropzone } from "@/components/scan/CameraCapture";
+import { diagnoseImage, type DiagnosisResult } from "@/lib/api";
+import { cn, pct, riskColor } from "@/lib/utils";
+
+const CROPS = ["Plátano", "Cacao", "Maíz", "Café", "Arroz", "Otro"];
+
+export default function EscanearPage() {
+  const router = useRouter();
+  const [file, setFile] = useState<File | null>(null);
+  const [crop, setCrop] = useState("Plátano");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<DiagnosisResult | null>(null);
+
+  const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+
+  const onFile = (f: File) => {
+    setFile(f);
+    setResult(null);
+    setError(null);
+  };
+
+  const analyze = async () => {
+    if (!file) return;
+    setLoading(true);
+    setError(null);
+    try {
+      let lat: number | undefined;
+      let lon: number | undefined;
+      if (navigator.geolocation) {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 })
+          );
+          lat = pos.coords.latitude;
+          lon = pos.coords.longitude;
+        } catch {
+          /* optional */
+        }
+      }
+      const data = await diagnoseImage(file, { crop, lat, lon });
+      setResult(data);
+      sessionStorage.setItem(`diagnosis:${data.id}`, JSON.stringify(data));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al analizar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6 animate-fade-up">
+      <header>
+        <p className="text-xs uppercase tracking-[0.2em] text-leaf">Sanidad vegetal</p>
+        <h1 className="font-display text-3xl text-forest mt-1">Escanear planta</h1>
+        <p className="text-sm text-ink/60 mt-1">
+          Toma una foto de la hoja o sube una imagen. La IA detecta la enfermedad, consulta el clima y
+          recomienda acciones.
+        </p>
+      </header>
+
+      <div className="rounded-2xl border border-forest/10 bg-cream p-4 sm:p-5 space-y-5">
+        <div>
+          <label className="text-xs font-medium text-ink/60">Cultivo</label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {CROPS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCrop(c)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-sm border transition-colors",
+                  crop === c
+                    ? "bg-leaf text-white border-leaf"
+                    : "bg-white border-forest/15 text-ink hover:border-leaf/40"
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <CameraCapture onCapture={onFile} disabled={loading} />
+
+        <div className="relative flex items-center gap-3 text-xs text-ink/40">
+          <div className="h-px flex-1 bg-forest/10" />
+          o sube desde galería
+          <div className="h-px flex-1 bg-forest/10" />
+        </div>
+
+        <ImageDropzone
+          previewUrl={preview}
+          onFile={onFile}
+          onClear={() => {
+            setFile(null);
+            setResult(null);
+          }}
+          disabled={loading}
+        />
+
+        <button
+          type="button"
+          disabled={!file || loading}
+          onClick={() => void analyze()}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-forest py-3.5 text-sm font-semibold text-cream disabled:opacity-40 hover:bg-leaf-dark transition-colors"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Analizando con agentes IA…
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4" />
+              Analizar muestra
+            </>
+          )}
+        </button>
+
+        {error && (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+            <span className="block text-xs mt-1 opacity-80">
+              ¿Backend apagado? Ejecuta: <code>uvicorn app.main:app --reload --port 8000</code>
+            </span>
+          </p>
+        )}
+      </div>
+
+      {result && (
+        <div className="rounded-2xl border border-forest/10 bg-white p-4 sm:p-6 space-y-4 shadow-sm animate-fade-up">
+          {result.demo && (
+            <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900">
+              Modo demo (sin OpenRouter). Configura <code>OPENROUTER_API_KEY</code> para GPT-4o Vision.
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-ink/45">Diagnóstico</p>
+              <h2 className="font-display text-2xl text-forest">{result.detection.disease}</h2>
+              <p className="text-sm text-ink/55">
+                {result.detection.crop} · {result.detection.affected_part}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="font-display text-3xl text-leaf">{pct(result.detection.confidence)}</p>
+              <span
+                className={cn(
+                  "inline-block mt-1 rounded-md border px-2 py-0.5 text-xs font-semibold uppercase",
+                  riskColor(result.detection.risk_level)
+                )}
+              >
+                Riesgo {result.detection.risk_level}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-sm leading-relaxed text-ink/80">{result.diagnosis}</p>
+
+          <div className="grid sm:grid-cols-3 gap-2 text-xs">
+            <Metric label="Temp" value={`${result.weather.temperature_c}°C`} />
+            <Metric label="Humedad" value={`${result.weather.humidity_pct}%`} />
+            <Metric label="Clima" value={result.weather.condition} />
+          </div>
+
+          <div>
+            <h3 className="font-medium text-forest mb-2">IA recomienda</h3>
+            <ul className="space-y-2">
+              {result.recommendations.map((r, idx) => (
+                <li key={idx} className="rounded-xl border border-forest/10 bg-mist/60 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium">{r.title}</p>
+                    <span className="text-[10px] uppercase tracking-wide text-ink/40">{r.timeframe}</span>
+                  </div>
+                  <p className="text-xs text-ink/60 mt-0.5">{r.detail}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-medium text-forest mb-2">Trazabilidad de agentes</h3>
+            <ol className="space-y-1.5 text-xs text-ink/65">
+              {result.agent_trace.map((t, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="font-mono text-leaf">{i + 1}.</span>
+                  <span>
+                    <strong>{t.agent}</strong> — {t.summary}{" "}
+                    <span className="text-ink/35">({t.duration_ms}ms · {t.status})</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/diagnose/${result.id}/pdf`}
+              className="rounded-xl border border-forest/15 bg-white px-4 py-2.5 text-sm hover:bg-mist"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Descargar PDF
+            </a>
+            <button
+              type="button"
+              onClick={() => router.push("/diagnosticos")}
+              className="rounded-xl bg-leaf px-4 py-2.5 text-sm font-medium text-white hover:bg-leaf-dark"
+            >
+              Ver historial
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-mist px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wide text-ink/40">{label}</p>
+      <p className="font-medium text-ink truncate">{value}</p>
+    </div>
+  );
+}

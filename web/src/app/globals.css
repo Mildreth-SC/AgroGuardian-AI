@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+:root {
+  --forest: #14281d;
+  --leaf: #2d6a4f;
+  --leaf-dark: #1b4332;
+  --leaf-light: #95d5b2;
+  --mist: #eef4ef;
+  --cream: #f7faf7;
+  --ink: #122018;
+  --sand: #d8e2d9;
+}
+
+@theme inline {
+  --color-forest: var(--forest);
+  --color-leaf: var(--leaf);
+  --color-leaf-dark: var(--leaf-dark);
+  --color-leaf-light: var(--leaf-light);
+  --color-mist: var(--mist);
+  --color-cream: var(--cream);
+  --color-ink: var(--ink);
+  --color-sand: var(--sand);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--mist);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.55s ease-out both;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2.2s ease-in-out infinite;
+}
+
+.bg-field {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(45, 106, 79, 0.18), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(149, 213, 178, 0.25), transparent),
+    linear-gradient(180deg, #eef4ef 0%, #e4ede6 100%);
+}
