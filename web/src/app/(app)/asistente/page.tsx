@@ -42,7 +42,7 @@ export default function AsistentePage() {
           role: "assistant",
           content:
             err instanceof Error
-              ? `No pude responder: ${err.message}. Revisa OPENROUTER_API_KEY y OPENROUTER_MODEL en Vercel (modelos :free cambian a menudo).`
+              ? `No pude responder: ${err.message}`
               : "Error de conexión con la API.",
         },
       ]);

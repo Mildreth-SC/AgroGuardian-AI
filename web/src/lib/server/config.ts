@@ -4,7 +4,7 @@ export function getConfig() {
     openrouterModel:
       process.env.OPENROUTER_MODEL ?? "openai/gpt-oss-20b:free",
     openrouterVisionModel:
-      process.env.OPENROUTER_VISION_MODEL ?? "google/gemma-4-31b-it:free",
+      process.env.OPENROUTER_VISION_MODEL ?? "nvidia/nemotron-nano-12b-v2-vl:free",
     openrouterBaseUrl: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
     supabaseUrl:
       process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "",

@@ -179,7 +179,8 @@ export default function EscanearPage() {
           <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
             <span className="block text-xs mt-1 opacity-80">
-              Verifica OPENROUTER_API_KEY y OPENROUTER_VISION_MODEL en tu entorno (Vercel o .env.local).
+              Si el error menciona un modelo, espera 1 minuto y reintenta — los modelos :free rotan.
+              Revisa Configuración → estado API o contacta soporte con este mensaje.
             </span>
           </p>
         )}
