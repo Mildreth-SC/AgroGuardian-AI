@@ -1,50 +1,6 @@
 import Link from "next/link";
-import { BookOpen, PlayCircle, Sprout } from "lucide-react";
-
-const COURSES = [
-  {
-    id: "1",
-    title: "Identificación de Sigatoka Negra",
-    duration: "25 min",
-    level: "Básico",
-    desc: "Aprende a reconocer síntomas tempranos en plátano y banano.",
-  },
-  {
-    id: "2",
-    title: "Manejo integrado de plagas (MIP)",
-    duration: "40 min",
-    level: "Intermedio",
-    desc: "Estrategias sostenibles para cacao y café en clima húmedo.",
-  },
-  {
-    id: "3",
-    title: "Riego eficiente en época seca",
-    duration: "20 min",
-    level: "Básico",
-    desc: "Optimiza agua según humedad del suelo y pronóstico.",
-  },
-  {
-    id: "4",
-    title: "Preparación de suelos para siembra",
-    duration: "35 min",
-    level: "Intermedio",
-    desc: "Análisis, cal agrícola y rotación de cultivos.",
-  },
-  {
-    id: "5",
-    title: "Uso seguro de fungicidas",
-    duration: "30 min",
-    level: "Avanzado",
-    desc: "Dosificación, EPP y cumplimiento normativo MAG.",
-  },
-  {
-    id: "6",
-    title: "Certificación orgánica — primeros pasos",
-    duration: "45 min",
-    level: "Intermedio",
-    desc: "Requisitos y beneficios para pequeños productores.",
-  },
-];
+import { BookOpen, ExternalLink, PlayCircle, Sprout } from "lucide-react";
+import { COURSES } from "@/lib/courses";
 
 export default function CapacitacionPage() {
   return (
@@ -83,7 +39,7 @@ export default function CapacitacionPage() {
         {COURSES.map((c) => (
           <article
             key={c.id}
-            className="rounded-2xl border border-forest/10 bg-cream p-5 hover:border-leaf/30 transition-colors group"
+            className="rounded-2xl border border-forest/10 bg-cream p-5 hover:border-leaf/30 transition-colors group flex flex-col"
           >
             <div className="flex items-start justify-between gap-2">
               <BookOpen className="h-5 w-5 text-leaf" />
@@ -94,16 +50,43 @@ export default function CapacitacionPage() {
             <h3 className="font-display text-lg text-forest mt-3 group-hover:text-leaf transition-colors">
               {c.title}
             </h3>
-            <p className="text-sm text-ink/60 mt-2 leading-relaxed">{c.desc}</p>
-            <div className="mt-4 flex items-center justify-between text-xs text-ink/45">
+            <p className="text-sm text-ink/60 mt-2 leading-relaxed flex-1">{c.desc}</p>
+            <p className="text-[11px] text-ink/45 mt-3 leading-snug">
+              Video: {c.videoSource}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-ink/45">
               <span>{c.duration}</span>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 text-leaf font-medium hover:underline"
-              >
-                <PlayCircle className="h-4 w-4" />
-                Iniciar
-              </button>
+              <div className="flex flex-wrap gap-2">
+                {c.relatedHref && c.relatedHref.startsWith("/") && (
+                  <Link
+                    href={c.relatedHref}
+                    className="inline-flex items-center gap-1 text-ink/55 hover:text-leaf"
+                  >
+                    <BookOpen className="h-3.5 w-3.5" />
+                    Guía
+                  </Link>
+                )}
+                {c.relatedHref && c.relatedHref.startsWith("http") && (
+                  <a
+                    href={c.relatedHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-ink/55 hover:text-leaf"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Agrocalidad
+                  </a>
+                )}
+                <a
+                  href={c.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-leaf font-medium hover:underline"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  Ver video
+                </a>
+              </div>
             </div>
           </article>
         ))}
