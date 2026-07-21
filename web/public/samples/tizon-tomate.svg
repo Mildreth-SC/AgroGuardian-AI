@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Tizón tardío">
+  <rect width="320" height="180" fill="#e8efe6"/>
+  <ellipse cx="160" cy="95" rx="100" ry="50" fill="#40916c"/>
+  <ellipse cx="130" cy="90" rx="28" ry="18" fill="#1b263b" opacity="0.75"/>
+  <ellipse cx="195" cy="102" rx="32" ry="20" fill="#1b263b" opacity="0.65"/>
+  <path d="M155 95 Q160 88 165 95" stroke="#778da9" stroke-width="2" fill="none"/>
+</svg>

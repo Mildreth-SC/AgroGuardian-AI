@@ -43,6 +43,7 @@ export const DISEASE_CATALOG: DiseaseEntry[] = [
     treatmentEs: ["Monitoreo semanal", "Nutrición balanceada", "Fungicida preventivo"],
     treatmentEn: ["Weekly monitoring", "Balanced nutrition", "Preventive fungicide"],
     severity: "medio",
+    image: "/samples/sigatoka-amarilla.svg",
   },
   {
     slug: "roya-maiz",
@@ -67,7 +68,7 @@ export const DISEASE_CATALOG: DiseaseEntry[] = [
     pathogen: "Moniliophthora roreri",
     season: "Lluvias prolongadas",
     riskClimate: "Alta humedad + sombra densa",
-    symptomsEs: ["Maza blanca en mazorcas", "Podredumben interna"],
+    symptomsEs: ["Maza blanca en mazorcas", "Podredumbre interna"],
     symptomsEn: ["White mold on pods", "Internal rot"],
     treatmentEs: ["Eliminar mazorcas infectadas", "Aumentar ventilación", "Trampas sanitarias"],
     treatmentEn: ["Remove infected pods", "Improve airflow", "Sanitation traps"],
@@ -87,6 +88,7 @@ export const DISEASE_CATALOG: DiseaseEntry[] = [
     treatmentEs: ["Poda sanitaria", "Cobre o fungicida registrado"],
     treatmentEn: ["Sanitary pruning", "Copper or registered fungicide"],
     severity: "alto",
+    image: "/samples/antracnosis-cafe.svg",
   },
   {
     slug: "blast-arroz",
@@ -101,6 +103,7 @@ export const DISEASE_CATALOG: DiseaseEntry[] = [
     treatmentEs: ["Evitar exceso de nitrógeno", "Fungicida en alerta"],
     treatmentEn: ["Avoid excess nitrogen", "Fungicide on alert"],
     severity: "alto",
+    image: "/samples/blast-arroz.svg",
   },
   {
     slug: "mildiu-vina",
@@ -115,6 +118,7 @@ export const DISEASE_CATALOG: DiseaseEntry[] = [
     treatmentEs: ["Azufre o bicarbonato", "Mejorar circulación de aire"],
     treatmentEn: ["Sulfur or bicarbonate", "Improve air circulation"],
     severity: "medio",
+    image: "/samples/mildiu-vina.svg",
   },
   {
     slug: "tizon-tomate",
@@ -129,6 +133,7 @@ export const DISEASE_CATALOG: DiseaseEntry[] = [
     treatmentEs: ["Eliminar focos", "Fungicida sistémico", "Rotación"],
     treatmentEn: ["Remove foci", "Systemic fungicide", "Crop rotation"],
     severity: "critico",
+    image: "/samples/tizon-tomate.svg",
   },
   {
     slug: "mosaico-papa",
@@ -143,6 +148,7 @@ export const DISEASE_CATALOG: DiseaseEntry[] = [
     treatmentEs: ["Control de vectores", "Material certificado", "Eliminar plantas"],
     treatmentEn: ["Vector control", "Certified seed", "Roguing infected plants"],
     severity: "alto",
+    image: "/samples/mosaico-papa.svg",
   },
   {
     slug: "trips-platano",
@@ -157,6 +163,7 @@ export const DISEASE_CATALOG: DiseaseEntry[] = [
     treatmentEs: ["Trampas azules", "Aceites hortícolas", "Manejo integrado"],
     treatmentEn: ["Blue sticky traps", "Horticultural oils", "IPM"],
     severity: "medio",
+    image: "/samples/trips-platano.svg",
   },
 ];
 

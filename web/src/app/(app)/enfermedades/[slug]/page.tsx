@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ScanLine } from "lucide-react";
+import { DiseaseThumbnail } from "@/components/diseases/DiseaseThumbnail";
 import { DISEASE_CATALOG, getDiseaseBySlug } from "@/lib/diseases";
 
 export function generateStaticParams() {
@@ -23,12 +24,7 @@ export default async function DiseaseDetailPage({
       </Link>
 
       <header className="rounded-2xl border border-forest/10 bg-cream p-5 sm:p-6">
-        {disease.image && (
-          <div className="mb-4 overflow-hidden rounded-xl border border-forest/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={disease.image} alt={disease.nameEs} className="w-full max-h-56 object-cover" />
-          </div>
-        )}
+        <DiseaseThumbnail slug={disease.slug} image={disease.image} alt={disease.nameEs} variant="detail" />
         <p className="text-xs uppercase tracking-[0.2em] text-leaf">{disease.crop}</p>
         <h1 className="font-display text-3xl text-forest mt-1">{disease.nameEs}</h1>
         <p className="text-sm text-ink/55 italic mt-1">{disease.nameEn}</p>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { BookOpen, ChevronRight } from "lucide-react";
+import { DiseaseThumbnail } from "@/components/diseases/DiseaseThumbnail";
 import { DISEASE_CATALOG } from "@/lib/diseases";
 import { usePreferences } from "@/providers/preferences-provider";
 import { cn } from "@/lib/utils";
@@ -37,16 +38,11 @@ export default function EnfermedadesPage() {
             href={`/enfermedades/${d.slug}`}
             className="group rounded-2xl border border-forest/10 bg-cream overflow-hidden hover:border-leaf/40 hover:shadow-md transition-all"
           >
-            {d.image && (
-              <div className="h-32 overflow-hidden bg-sand">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={d.image}
-                  alt={locale === "en" ? d.nameEn : d.nameEs}
-                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-            )}
+            <DiseaseThumbnail
+              slug={d.slug}
+              image={d.image}
+              alt={locale === "en" ? d.nameEn : d.nameEs}
+            />
             <div className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>

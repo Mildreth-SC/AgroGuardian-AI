@@ -107,7 +107,7 @@ export default function CultivosPage() {
       {showFarm && (
         <form onSubmit={onCreateFarm} className="rounded-2xl border border-forest/10 bg-cream p-4 grid sm:grid-cols-2 gap-3 text-sm">
           <Field name="name" label="Nombre" required placeholder="Finca El Guabo" />
-          <Field name="area_ha" label="├ürea (ha)" type="number" step="0.1" defaultValue="2" />
+          <Field name="area_ha" label="Área (ha)" type="number" step="0.1" defaultValue="2" />
           <Field name="lat" label="Lat" type="number" step="0.0001" defaultValue="-1.0547" />
           <Field name="lng" label="Lng" type="number" step="0.0001" defaultValue="-80.4545" />
           <div className="sm:col-span-2 flex gap-2">
@@ -131,10 +131,10 @@ export default function CultivosPage() {
               ))}
             </select>
           </label>
-          <Field name="name" label="Cultivo" required placeholder="Pl├ítano Barraganete" />
+          <Field name="name" label="Cultivo" required placeholder="Plátano Barraganete" />
           <Field name="variety" label="Variedad" placeholder="Barraganete" />
           <Field name="growth_stage" label="Etapa" defaultValue="Desarrollo" />
-          <Field name="hectares" label="Hect├íreas" type="number" step="0.1" defaultValue="1" />
+          <Field name="hectares" label="Hectáreas" type="number" step="0.1" defaultValue="1" />
           <div className="sm:col-span-2 flex gap-2">
             <button disabled={busy || farms.length === 0} type="submit" className="rounded-xl bg-forest px-4 py-2 text-cream text-sm disabled:opacity-40">
               Guardar cultivo
@@ -164,7 +164,7 @@ export default function CultivosPage() {
               </span>
             </div>
             <p className="text-xs text-ink/50 mt-1">
-              {c.hectares} ha ┬À {c.growth_stage} ┬À {farmName(c.farm_id)}
+              {c.hectares} ha · {c.growth_stage} · {farmName(c.farm_id)}
             </p>
             <div className="mt-4">
               <div className="flex justify-between text-xs mb-1">

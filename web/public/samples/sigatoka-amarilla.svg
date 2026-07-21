@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Sigatoka amarilla">
+  <rect width="320" height="180" fill="#e8efe6"/>
+  <ellipse cx="160" cy="95" rx="95" ry="55" fill="#40916c"/>
+  <path d="M70 95 Q160 55 250 95" stroke="#f4d35e" stroke-width="3" fill="none" opacity="0.9"/>
+  <path d="M85 105 Q160 75 235 105" stroke="#ee9b00" stroke-width="2" fill="none"/>
+  <circle cx="120" cy="88" r="4" fill="#ffd166"/>
+  <circle cx="190" cy="92" r="3" fill="#ffd166"/>
+</svg>

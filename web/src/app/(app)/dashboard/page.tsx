@@ -25,7 +25,7 @@ export default function DashboardPage() {
           condition: "Humedad alta",
           climate_risk: "alto",
           source: "demo",
-          location: "Portoviejo, Manab├¡",
+          location: "Portoviejo, Manabí",
         })
       );
     getCrops().then(setCrops).catch(() => setCrops([]));
@@ -51,7 +51,7 @@ export default function DashboardPage() {
   const alerts = cases.slice(0, 3).map((c) => ({
     id: c.id,
     title: `${c.detection.disease} detectada`,
-    detail: `${c.detection.crop} ┬À confianza ${Math.round(c.detection.confidence * 100)}%`,
+    detail: `${c.detection.crop} · confianza ${Math.round(c.detection.confidence * 100)}%`,
     time: new Date(c.created_at).toLocaleString("es-EC", {
       hour: "2-digit",
       minute: "2-digit",
@@ -66,9 +66,9 @@ export default function DashboardPage() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-leaf">AgroGuardian AI</p>
-          <h1 className="font-display text-3xl sm:text-4xl text-forest mt-1">Buenos d├¡as</h1>
+          <h1 className="font-display text-3xl sm:text-4xl text-forest mt-1">Buenos días</h1>
           <p className="mt-1 text-sm text-ink/60 max-w-lg">
-            Sanidad vegetal en tiempo real ÔÇö detecta plagas antes de que el da├▒o sea evidente.
+            Sanidad vegetal en tiempo real — detecta plagas antes de que el daño sea evidente.
           </p>
         </div>
         <Link
@@ -82,15 +82,15 @@ export default function DashboardPage() {
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Cultivos activos", value: String(crops.length || "ÔÇö"), icon: Leaf, hint: "lotes registrados" },
-          { label: "Casos detectados", value: String(infected), icon: AlertTriangle, hint: "requieren atenci├│n" },
+          { label: "Cultivos activos", value: String(crops.length || "—"), icon: Leaf, hint: "lotes registrados" },
+          { label: "Casos detectados", value: String(infected), icon: AlertTriangle, hint: "requieren atención" },
           {
-            label: "Riesgo clim├ítico",
-            value: weather ? weather.climate_risk.toUpperCase() : "ÔÇª",
+            label: "Riesgo climático",
+            value: weather ? weather.climate_risk.toUpperCase() : "…",
             icon: Droplets,
-            hint: weather ? `Humedad ${weather.humidity_pct}%` : "cargandoÔÇª",
+            hint: weather ? `Humedad ${weather.humidity_pct}%` : "cargando…",
           },
-          { label: "Salud promedio", value: crops.length ? `${avgHealth}%` : "ÔÇö", icon: Thermometer, hint: "├¡ndice foliar" },
+          { label: "Salud promedio", value: crops.length ? `${avgHealth}%` : "—", icon: Thermometer, hint: "índice foliar" },
         ].map((m) => (
           <div
             key={m.label}
@@ -156,7 +156,7 @@ export default function DashboardPage() {
           <div className="rounded-2xl border border-forest/8 bg-cream/90 p-4 sm:p-5">
             <h2 className="font-display text-xl text-forest mb-3">Alertas recientes</h2>
             {alerts.length === 0 ? (
-              <p className="text-sm text-ink/50">Sin diagn├│sticos a├║n. Escanea una planta para empezar.</p>
+              <p className="text-sm text-ink/50">Sin diagnósticos aún. Escanea una planta para empezar.</p>
             ) : (
               <ul className="space-y-3">
                 {alerts.map((a) => (

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Daño por trips">
+  <rect width="320" height="180" fill="#e8efe6"/>
+  <ellipse cx="160" cy="95" rx="100" ry="50" fill="#40916c"/>
+  <path d="M75 88 L245 88" stroke="#ced4da" stroke-width="4" opacity="0.9"/>
+  <path d="M80 98 L240 98" stroke="#e9ecef" stroke-width="3"/>
+  <path d="M85 108 L235 108" stroke="#ced4da" stroke-width="4" opacity="0.85"/>
+  <path d="M90 118 L230 118" stroke="#f8f9fa" stroke-width="3"/>
+</svg>

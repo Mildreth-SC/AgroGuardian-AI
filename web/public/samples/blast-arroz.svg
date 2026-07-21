@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Pyricularia del arroz">
+  <rect width="320" height="180" fill="#e8efe6"/>
+  <ellipse cx="160" cy="95" rx="100" ry="48" fill="#52b788"/>
+  <polygon points="120,78 135,95 120,112 105,95" fill="#6c757d" opacity="0.85"/>
+  <polygon points="175,72 190,89 175,106 160,89" fill="#6c757d" opacity="0.85"/>
+  <polygon points="210,92 225,109 210,126 195,109" fill="#6c757d" opacity="0.7"/>
+</svg>

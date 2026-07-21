@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Mildiu polvoso">
+  <rect width="320" height="180" fill="#e8efe6"/>
+  <ellipse cx="160" cy="95" rx="98" ry="50" fill="#40916c"/>
+  <ellipse cx="160" cy="95" rx="70" ry="35" fill="#f8f9fa" opacity="0.75"/>
+  <circle cx="130" cy="85" r="8" fill="#dee2e6"/>
+  <circle cx="185" cy="100" r="10" fill="#dee2e6"/>
+  <circle cx="150" cy="110" r="6" fill="#dee2e6"/>
+</svg>
