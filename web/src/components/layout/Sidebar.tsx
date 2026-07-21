@@ -13,6 +13,7 @@ import {
   Settings,
   Sprout,
 } from "lucide-react";
+import { AuthSlot } from "@/components/layout/AuthSlot";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -66,8 +67,9 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="m-3 rounded-xl bg-white/5 p-3 text-xs text-cream/60 ring-1 ring-white/10">
-        Enfocado en sanidad vegetal · Manabí
+      <div className="m-3 space-y-2 rounded-xl bg-white/5 p-3 text-xs text-cream/60 ring-1 ring-white/10">
+        <AuthSlot />
+        <p>Enfocado en sanidad vegetal · Manabí</p>
       </div>
     </aside>
   );

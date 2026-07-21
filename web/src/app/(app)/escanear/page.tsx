@@ -3,8 +3,14 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
+import { AgentProgress, type AgentStep } from "@/components/scan/AgentProgress";
 import { CameraCapture, ImageDropzone } from "@/components/scan/CameraCapture";
-import { diagnoseImage, type DiagnosisResult } from "@/lib/api";
+import {
+  diagnoseImageStream,
+  type AgentTrace,
+  type DiagnosisResult,
+} from "@/lib/api";
+import { SAMPLE_IMAGES } from "@/lib/samples";
 import { cn, pct, riskColor } from "@/lib/utils";
 
 const CROPS = ["Plátano", "Cacao", "Maíz", "Café", "Arroz", "Otro"];
@@ -16,6 +22,7 @@ export default function EscanearPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DiagnosisResult | null>(null);
+  const [steps, setSteps] = useState<AgentStep[]>([]);
 
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
 
@@ -23,12 +30,23 @@ export default function EscanearPage() {
     setFile(f);
     setResult(null);
     setError(null);
+    setSteps([]);
+  };
+
+  const loadSample = async (src: string, name: string, cropName: string) => {
+    const res = await fetch(src);
+    const blob = await res.blob();
+    const f = new File([blob], name, { type: blob.type || "image/jpeg" });
+    setCrop(cropName);
+    onFile(f);
   };
 
   const analyze = async () => {
     if (!file) return;
     setLoading(true);
     setError(null);
+    setResult(null);
+    setSteps([]);
     try {
       let lat: number | undefined;
       let lon: number | undefined;
@@ -43,9 +61,20 @@ export default function EscanearPage() {
           /* optional */
         }
       }
-      const data = await diagnoseImage(file, { crop, lat, lon });
-      setResult(data);
-      sessionStorage.setItem(`diagnosis:${data.id}`, JSON.stringify(data));
+
+      const upsert = (trace: AgentTrace) => {
+        setSteps((prev) => [...prev.filter((s) => s.agent !== trace.agent), trace]);
+      };
+
+      await diagnoseImageStream(file, { crop, lat, lon }, {
+        onProgress: upsert,
+        onResult: (data) => {
+          setResult(data);
+          setSteps(data.agent_trace);
+          sessionStorage.setItem(`diagnosis:${data.id}`, JSON.stringify(data));
+        },
+        onError: (msg) => setError(msg),
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al analizar");
     } finally {
@@ -86,6 +115,23 @@ export default function EscanearPage() {
           </div>
         </div>
 
+        <div>
+          <p className="text-xs font-medium text-ink/60 mb-2">Muestras demo (estilo PlantVillage)</p>
+          <div className="flex flex-wrap gap-2">
+            {SAMPLE_IMAGES.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                disabled={loading}
+                onClick={() => void loadSample(s.src, s.filename, s.crop)}
+                className="rounded-lg border border-forest/15 bg-white px-3 py-1.5 text-xs hover:border-leaf/40 disabled:opacity-40"
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <CameraCapture onCapture={onFile} disabled={loading} />
 
         <div className="relative flex items-center gap-3 text-xs text-ink/40">
@@ -100,6 +146,7 @@ export default function EscanearPage() {
           onClear={() => {
             setFile(null);
             setResult(null);
+            setSteps([]);
           }}
           disabled={loading}
         />
@@ -123,6 +170,10 @@ export default function EscanearPage() {
           )}
         </button>
 
+        {(loading || steps.length > 0) && !result && (
+          <AgentProgress steps={steps} active={loading} />
+        )}
+
         {error && (
           <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
@@ -140,6 +191,8 @@ export default function EscanearPage() {
               Modo demo (sin OpenRouter). Configura <code>OPENROUTER_API_KEY</code> para GPT-4o Vision.
             </p>
           )}
+
+          <AgentProgress steps={result.agent_trace} active={false} />
 
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -183,21 +236,6 @@ export default function EscanearPage() {
                 </li>
               ))}
             </ul>
-          </div>
-
-          <div>
-            <h3 className="font-medium text-forest mb-2">Trazabilidad de agentes</h3>
-            <ol className="space-y-1.5 text-xs text-ink/65">
-              {result.agent_trace.map((t, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className="font-mono text-leaf">{i + 1}.</span>
-                  <span>
-                    <strong>{t.agent}</strong> — {t.summary}{" "}
-                    <span className="text-ink/35">({t.duration_ms}ms · {t.status})</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
           </div>
 
           <div className="flex flex-wrap gap-2 pt-1">

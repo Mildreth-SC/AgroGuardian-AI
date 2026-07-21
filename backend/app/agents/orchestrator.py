@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 
 from app.config import Settings
@@ -16,6 +18,7 @@ from app.models.schemas import (
 )
 from app.services import openrouter, weather as weather_service
 
+ProgressCallback = Callable[[AgentTrace], Awaitable[None]]
 
 VISION_PROMPT = """Eres un detector de enfermedades vegetales para cultivos de Manabí, Ecuador
 (plátano, cacao, maíz, café, arroz). Analiza la imagen de la hoja/planta.
@@ -40,15 +43,31 @@ async def run_diagnosis_pipeline(
     crop_hint: str | None = None,
     lat: float | None = None,
     lon: float | None = None,
+    on_progress: ProgressCallback | None = None,
 ) -> DiagnosisResult:
     traces: list[AgentTrace] = []
     use_demo = settings.demo_mode and not settings.has_openrouter
 
+    async def emit(trace: AgentTrace) -> None:
+        traces.append(trace)
+        if on_progress:
+            await on_progress(trace)
+
     # Agent 1 — Disease Detector
+    if on_progress:
+        await on_progress(
+            AgentTrace(
+                agent="Disease Detector",
+                status="running",
+                summary="Analizando imagen con visión IA…",
+                duration_ms=0,
+            )
+        )
     t0 = time.perf_counter()
     if use_demo:
+        await asyncio.sleep(0.45)
         detection = _demo_detection(crop_hint)
-        traces.append(
+        await emit(
             AgentTrace(
                 agent="Disease Detector",
                 status="demo",
@@ -71,7 +90,7 @@ async def run_diagnosis_pipeline(
             risk_level=RiskLevel(str(payload.get("risk_level", "medio")).lower()),
             rationale=str(payload.get("rationale", "")),
         )
-        traces.append(
+        await emit(
             AgentTrace(
                 agent="Disease Detector",
                 status="ok",
@@ -81,7 +100,16 @@ async def run_diagnosis_pipeline(
             )
         )
 
-    # Agent 3 — Climate Agent
+    # Agent 2 — Climate Agent
+    if on_progress:
+        await on_progress(
+            AgentTrace(
+                agent="Climate Agent",
+                status="running",
+                summary="Consultando clima local…",
+                duration_ms=0,
+            )
+        )
     t1 = time.perf_counter()
     try:
         climate = await weather_service.fetch_weather(settings, lat, lon)
@@ -89,7 +117,9 @@ async def run_diagnosis_pipeline(
     except Exception:
         climate = weather_service.demo_weather()
         status = "fallback-demo"
-    traces.append(
+    if use_demo:
+        await asyncio.sleep(0.35)
+    await emit(
         AgentTrace(
             agent="Climate Agent",
             status=status,
@@ -102,11 +132,21 @@ async def run_diagnosis_pipeline(
         )
     )
 
-    # Agent 2 — Agronomist
+    # Agent 3 — Agronomist
+    if on_progress:
+        await on_progress(
+            AgentTrace(
+                agent="Agronomist",
+                status="running",
+                summary="Generando diagnóstico y plan de acción…",
+                duration_ms=0,
+            )
+        )
     t2 = time.perf_counter()
     if use_demo:
+        await asyncio.sleep(0.4)
         diagnosis, recommendations, follow_up = _demo_agronomist(detection, climate)
-        traces.append(
+        await emit(
             AgentTrace(
                 agent="Agronomist",
                 status="demo",
@@ -118,7 +158,7 @@ async def run_diagnosis_pipeline(
         diagnosis, recommendations, follow_up = await _llm_agronomist(
             settings, detection, climate
         )
-        traces.append(
+        await emit(
             AgentTrace(
                 agent="Agronomist",
                 status="ok",
@@ -127,8 +167,19 @@ async def run_diagnosis_pipeline(
             )
         )
 
-    # Agent 4 — Report Agent (structured package)
-    traces.append(
+    # Agent 4 — Report Agent
+    if on_progress:
+        await on_progress(
+            AgentTrace(
+                agent="Report Agent",
+                status="running",
+                summary="Empaquetando caso y preparando PDF…",
+                duration_ms=0,
+            )
+        )
+    if use_demo:
+        await asyncio.sleep(0.25)
+    await emit(
         AgentTrace(
             agent="Report Agent",
             status="ok",
@@ -138,6 +189,9 @@ async def run_diagnosis_pipeline(
         )
     )
 
+    # Keep only final traces (drop intermediate "running" from result)
+    final_traces = [t for t in traces if t.status != "running"]
+
     return DiagnosisResult(
         id=str(uuid.uuid4()),
         created_at=datetime.now(timezone.utc),
@@ -146,7 +200,7 @@ async def run_diagnosis_pipeline(
         diagnosis=diagnosis,
         recommendations=recommendations,
         follow_up=follow_up,
-        agent_trace=traces,
+        agent_trace=final_traces,
         demo=use_demo,
     )
 

@@ -29,5 +29,6 @@ Thumbs.db
 
 # Uploads / generated
 backend/uploads/
+backend/data/
 backend/tmp/
 *.pdf

@@ -62,6 +62,9 @@ class DiagnosisResult(BaseModel):
     follow_up: FollowUpPlan
     agent_trace: list[AgentTrace]
     demo: bool = False
+    image_path: str | None = None
+    farm_id: str | None = None
+    crop_id: str | None = None
 
 
 class ChatMessage(BaseModel):

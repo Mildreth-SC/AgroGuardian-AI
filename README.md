@@ -17,6 +17,19 @@ Plataforma de **sanidad vegetal** para agricultores de Manabí: foto de hoja →
 
 ## Inicio rápido
 
+Desde la **raíz** del repo (recomendado):
+
+```powershell
+# Una sola vez
+npm install
+npm --prefix web install
+
+# API (8000) + frontend (3000) juntos
+npm run dev
+```
+
+O por separado:
+
 ### 1. Backend
 
 ```powershell
@@ -42,6 +55,8 @@ npm run dev
 ```
 
 App: http://localhost:3000
+
+> **Nota:** `npm run dev` en la raíz del repo ya no falla: el `package.json` de Next.js vive en `web/`. Usa `npm run dev` (raíz) o `cd web; npm run dev`.
 
 ### 3. Cámara (móvil y web)
 

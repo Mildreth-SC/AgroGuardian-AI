@@ -1,17 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Droplets, Leaf, ScanLine, Thermometer } from "lucide-react";
 import { FarmMap } from "@/components/map/FarmMap";
-import { getWeather, type WeatherSnapshot } from "@/lib/api";
-import { ALERTS, CROPS } from "@/lib/mock-data";
+import { getCases, getCrops, getWeather, type Crop, type DiagnosisResult, type WeatherSnapshot } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
-  const avgHealth = Math.round(CROPS.reduce((a, c) => a + c.health, 0) / CROPS.length);
-  const infected = CROPS.filter((c) => c.status !== "sano").length;
+  const [crops, setCrops] = useState<Crop[]>([]);
+  const [cases, setCases] = useState<DiagnosisResult[]>([]);
 
   useEffect(() => {
     getWeather()
@@ -28,14 +27,42 @@ export default function DashboardPage() {
           location: "Portoviejo, Manabí",
         })
       );
+    getCrops().then(setCrops).catch(() => setCrops([]));
+    getCases().then(setCases).catch(() => setCases([]));
   }, []);
+
+  const avgHealth = crops.length
+    ? Math.round(crops.reduce((a, c) => a + c.health_pct, 0) / crops.length)
+    : 0;
+  const infected = crops.filter((c) => c.status !== "sano").length;
+
+  const ring = useMemo(() => {
+    if (!crops.length) return { healthy: 70, risk: 20, infected: 10 };
+    const n = crops.length;
+    const h = Math.round((crops.filter((c) => c.status === "sano").length / n) * 100);
+    const r = Math.round((crops.filter((c) => c.status === "riesgo").length / n) * 100);
+    return { healthy: h, risk: r, infected: Math.max(0, 100 - h - r) };
+  }, [crops]);
+
+  const alerts = cases.slice(0, 3).map((c) => ({
+    id: c.id,
+    title: `${c.detection.disease} detectada`,
+    detail: `${c.detection.crop} · confianza ${Math.round(c.detection.confidence * 100)}%`,
+    time: new Date(c.created_at).toLocaleString("es-EC", {
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "short",
+    }),
+    level: c.detection.risk_level === "alto" || c.detection.risk_level === "critico" ? "alto" : "medio",
+  }));
 
   return (
     <div className="bg-field -mx-4 -mt-5 px-4 pt-5 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 pb-2 space-y-6 animate-fade-up">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-leaf">AgroGuardian AI</p>
-          <h1 className="font-display text-3xl sm:text-4xl text-forest mt-1">Buenos días, Juan</h1>
+          <h1 className="font-display text-3xl sm:text-4xl text-forest mt-1">Buenos días</h1>
           <p className="mt-1 text-sm text-ink/60 max-w-lg">
             Sanidad vegetal en tiempo real — detecta plagas antes de que el daño sea evidente.
           </p>
@@ -51,7 +78,7 @@ export default function DashboardPage() {
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Cultivos activos", value: String(CROPS.length), icon: Leaf, hint: "lotes registrados" },
+          { label: "Cultivos activos", value: String(crops.length || "—"), icon: Leaf, hint: "lotes registrados" },
           { label: "Casos detectados", value: String(infected), icon: AlertTriangle, hint: "requieren atención" },
           {
             label: "Riesgo climático",
@@ -59,7 +86,7 @@ export default function DashboardPage() {
             icon: Droplets,
             hint: weather ? `Humedad ${weather.humidity_pct}%` : "cargando…",
           },
-          { label: "Salud promedio", value: `${avgHealth}%`, icon: Thermometer, hint: "índice foliar" },
+          { label: "Salud promedio", value: crops.length ? `${avgHealth}%` : "—", icon: Thermometer, hint: "índice foliar" },
         ].map((m) => (
           <div
             key={m.label}
@@ -100,27 +127,31 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 space-y-4">
           <div className="rounded-2xl border border-forest/8 bg-cream/90 p-4 sm:p-5">
             <h2 className="font-display text-xl text-forest mb-3">Estado de cultivos</h2>
-            <StatusRing healthy={70} risk={20} infected={10} />
+            <StatusRing {...ring} />
           </div>
           <div className="rounded-2xl border border-forest/8 bg-cream/90 p-4 sm:p-5">
             <h2 className="font-display text-xl text-forest mb-3">Alertas recientes</h2>
-            <ul className="space-y-3">
-              {ALERTS.map((a) => (
-                <li key={a.id} className="flex gap-3 text-sm">
-                  <span
-                    className={cn(
-                      "mt-1 h-2 w-2 shrink-0 rounded-full",
-                      a.level === "alto" ? "bg-red-500 animate-pulse-soft" : "bg-amber-500"
-                    )}
-                  />
-                  <div>
-                    <p className="font-medium text-ink">{a.title}</p>
-                    <p className="text-xs text-ink/50">{a.detail}</p>
-                    <p className="text-[10px] text-ink/40 mt-0.5">{a.time}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {alerts.length === 0 ? (
+              <p className="text-sm text-ink/50">Sin diagnósticos aún. Escanea una planta para empezar.</p>
+            ) : (
+              <ul className="space-y-3">
+                {alerts.map((a) => (
+                  <li key={a.id} className="flex gap-3 text-sm">
+                    <span
+                      className={cn(
+                        "mt-1 h-2 w-2 shrink-0 rounded-full",
+                        a.level === "alto" ? "bg-red-500 animate-pulse-soft" : "bg-amber-500"
+                      )}
+                    />
+                    <div>
+                      <p className="font-medium text-ink">{a.title}</p>
+                      <p className="text-xs text-ink/50">{a.detail}</p>
+                      <p className="text-[10px] text-ink/40 mt-0.5">{a.time}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </section>

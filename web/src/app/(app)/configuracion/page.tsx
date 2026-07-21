@@ -43,7 +43,11 @@ export default function ConfigPage() {
             <code>OPENROUTER_API_KEY</code> para visión real.
           </p>
           <p>
-            Clerk y Supabase son opcionales en el MVP; el flujo de escaneo funciona en modo demo.
+            Clerk: opcional. Con <code>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code> aparece Entrar/Registro
+            en el sidebar.
+          </p>
+          <p>
+            PWA: instala desde el navegador (manifest + service worker). Muestras demo en Escanear.
           </p>
         </div>
       </div>

@@ -1,0 +1,15 @@
+{
+  "name": "agroguardian-ai",
+  "private": true,
+  "description": "AgroGuardian AI — monorepo scripts (API + web)",
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c green,cyan \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:web": "npm --prefix web run dev",
+    "dev:api": "cd backend && .venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/stop-dev.ps1",
+    "install:all": "npm --prefix web install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
