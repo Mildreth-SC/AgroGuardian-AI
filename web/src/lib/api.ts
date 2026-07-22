@@ -49,8 +49,11 @@ export type DiagnosisResult = {
   agent_trace: AgentTrace[];
   demo: boolean;
   image_path?: string | null;
+  report_id?: string | null;
+  report_url?: string | null;
   farm_id?: string | null;
   crop_id?: string | null;
+  farm_name?: string | null;
 };
 
 export type WeatherSnapshot = DiagnosisResult["weather"];
@@ -367,6 +370,58 @@ export async function getCases() {
   const res = await apiFetch("/api/cases", { cache: "no-store" });
   return res.json() as Promise<DiagnosisResult[]>;
 }
+
+export async function getDiagnosisById(id: string) {
+  const res = await apiFetch(`/api/diagnose/${encodeURIComponent(id)}`, { cache: "no-store" });
+  return res.json() as Promise<DiagnosisResult>;
+}
+
+export async function getReports() {
+  const res = await apiFetch("/api/reports", { cache: "no-store" });
+  return res.json() as Promise<ReportItem[]>;
+}
+
+export async function getProfileSettings() {
+  const res = await apiFetch("/api/profile", { cache: "no-store" });
+  return res.json() as Promise<UserProfile>;
+}
+
+export async function updateProfileSettings(payload: {
+  full_name?: string;
+  phone?: string;
+  province?: string;
+  default_crop?: string | null;
+}) {
+  const res = await apiFetch("/api/profile", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export type ReportItem = {
+  id: string;
+  detection_id: string;
+  created_at: string;
+  summary: string;
+  storage_path: string | null;
+  disease: string;
+  crop: string;
+  confidence: number;
+  risk_level: RiskLevel;
+  pdf_url: string;
+};
+
+export type UserProfile = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  province: string | null;
+  default_crop: string | null;
+  farms?: Farm[];
+  mode?: string;
+};
 
 export type OutbreakAlert = {
   id: string;

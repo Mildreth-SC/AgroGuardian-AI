@@ -359,7 +359,8 @@ export async function dashboardStats(client: SupabaseClient, userId: string) {
 export async function saveDetection(
   client: SupabaseClient,
   userId: string,
-  result: DiagnosisResult
+  result: DiagnosisResult,
+  links?: { image_id?: string | null; crop_id?: string | null; farm_id?: string | null }
 ) {
   const det = result.detection;
   const payloadTrace = {
@@ -369,12 +370,17 @@ export async function saveDetection(
     duration_ms: 0,
     data: {
       payload: {
+        crop: det.crop,
         weather: result.weather,
         diagnosis: result.diagnosis,
         recommendations: result.recommendations,
         follow_up: result.follow_up,
         demo: result.demo,
         alternatives: det.alternatives,
+        farm_id: links?.farm_id ?? result.farm_id ?? null,
+        crop_id: links?.crop_id ?? result.crop_id ?? null,
+        image_path: result.image_path ?? null,
+        report_url: result.report_url ?? null,
       },
     },
   };
@@ -384,6 +390,8 @@ export async function saveDetection(
     .insert({
       id: result.id,
       owner_id: userId,
+      image_id: links?.image_id ?? null,
+      crop_id: links?.crop_id ?? result.crop_id ?? null,
       disease: det.disease,
       confidence: det.confidence,
       risk_level: det.risk_level,
@@ -409,6 +417,101 @@ export async function saveDetection(
   }
 }
 
+export async function uploadScanImage(
+  client: SupabaseClient,
+  userId: string,
+  caseId: string,
+  imageBytes: Buffer,
+  mime: string
+) {
+  const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
+  const path = `${userId}/${caseId}.${ext}`;
+
+  const { error: upErr } = await client.storage.from("plant-scans").upload(path, imageBytes, {
+    contentType: mime,
+    upsert: true,
+  });
+  if (upErr) throw upErr;
+
+  const { data: img, error: imgErr } = await client
+    .from("images")
+    .insert({
+      owner_id: userId,
+      storage_path: path,
+      mime,
+    })
+    .select("id")
+    .single();
+  if (imgErr) throw imgErr;
+
+  return { path, imageId: img.id as string };
+}
+
+export async function uploadReportPdf(
+  client: SupabaseClient,
+  userId: string,
+  result: DiagnosisResult,
+  pdfBytes: Uint8Array
+) {
+  const path = `${userId}/${result.id}.pdf`;
+  const { error } = await client.storage.from("reports").upload(path, pdfBytes, {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+  if (error) throw error;
+  return { id: result.id, path };
+}
+
+export async function saveReportRecord(
+  client: SupabaseClient,
+  userId: string,
+  detectionId: string,
+  storagePath: string,
+  summary: string
+) {
+  await client.from("reports").delete().eq("owner_id", userId).eq("detection_id", detectionId);
+  const { error } = await client.from("reports").insert({
+    detection_id: detectionId,
+    owner_id: userId,
+    storage_path: storagePath,
+    summary,
+  });
+  if (error) throw error;
+}
+
+export async function loadScanImageBytes(
+  client: SupabaseClient,
+  storagePath: string
+): Promise<Buffer | null> {
+  const { data, error } = await client.storage.from("plant-scans").download(storagePath);
+  if (error || !data) return null;
+  return Buffer.from(await data.arrayBuffer());
+}
+
+export async function updateCropHealthFromDiagnosis(
+  client: SupabaseClient,
+  userId: string,
+  cropId: string,
+  result: DiagnosisResult
+) {
+  const farms = await listFarms(client, userId);
+  const farmIds = farms.map((f) => f.id);
+  if (!farmIds.length) return;
+
+  const risk = result.detection.risk_level;
+  let status: "sano" | "riesgo" | "infectado" = "sano";
+  if (risk === "alto" || risk === "critico") status = "infectado";
+  else if (risk === "medio") status = "riesgo";
+
+  const health_pct = Math.max(40, Math.round(100 - result.detection.confidence * 45));
+
+  await client
+    .from("crops")
+    .update({ status, health_pct })
+    .eq("id", cropId)
+    .in("farm_id", farmIds);
+}
+
 function extractPayload(trace: unknown): Record<string, unknown> | null {
   if (!Array.isArray(trace)) return null;
   for (const item of trace) {
@@ -418,50 +521,168 @@ function extractPayload(trace: unknown): Record<string, unknown> | null {
   return null;
 }
 
+function rowToDiagnosis(row: Record<string, unknown>): DiagnosisResult {
+  const payload = extractPayload(row.agent_trace);
+  const recs = (payload?.recommendations as DiagnosisResult["recommendations"]) ?? [];
+  const weather = (payload?.weather as DiagnosisResult["weather"]) ?? {
+    temperature_c: 28,
+    humidity_pct: 75,
+    rain_mm: 0,
+    wind_kmh: 10,
+    condition: "—",
+    climate_risk: "medio" as const,
+    source: "stored",
+    location: "Manabí",
+  };
+  return {
+    id: row.id as string,
+    created_at: row.created_at as string,
+    detection: {
+      disease: row.disease as string,
+      crop: (payload?.crop as string) ?? "Cultivo",
+      confidence: Number(row.confidence),
+      affected_part: (row.affected_part as string) ?? "hoja",
+      risk_level: row.risk_level as DiagnosisResult["detection"]["risk_level"],
+      rationale: (row.rationale as string) ?? "",
+      alternatives: payload?.alternatives as DiagnosisResult["detection"]["alternatives"],
+    },
+    weather,
+    diagnosis: (payload?.diagnosis as string) ?? "",
+    recommendations: recs,
+    follow_up: (payload?.follow_up as DiagnosisResult["follow_up"]) ?? {
+      check_in_hours: 72,
+      steps: [],
+    },
+    agent_trace: (row.agent_trace as DiagnosisResult["agent_trace"]) ?? [],
+    demo: Boolean(payload?.demo),
+    image_path: (payload?.image_path as string) ?? null,
+    report_url: (payload?.report_url as string) ?? `/api/diagnose/${row.id}/pdf`,
+    farm_id: (payload?.farm_id as string) ?? null,
+    crop_id: (row.crop_id as string) ?? (payload?.crop_id as string) ?? null,
+  };
+}
+
+export async function getDetectionById(
+  client: SupabaseClient,
+  userId: string,
+  detectionId: string
+) {
+  const { data, error } = await client
+    .from("detections")
+    .select("id,disease,confidence,risk_level,affected_part,rationale,agent_trace,created_at,crop_id")
+    .eq("owner_id", userId)
+    .eq("id", detectionId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return rowToDiagnosis(data as Record<string, unknown>);
+}
+
 export async function listDetections(client: SupabaseClient, userId: string) {
   const { data, error } = await client
     .from("detections")
-    .select("id,disease,confidence,risk_level,affected_part,rationale,agent_trace,created_at")
+    .select("id,disease,confidence,risk_level,affected_part,rationale,agent_trace,created_at,crop_id")
     .eq("owner_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
 
   if (error) throw error;
 
+  return (data ?? []).map((row) => rowToDiagnosis(row as Record<string, unknown>));
+}
+
+export async function listReports(client: SupabaseClient, userId: string) {
+  const { data, error } = await client
+    .from("reports")
+    .select("id,detection_id,storage_path,summary,created_at")
+    .eq("owner_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+
+  const detectionIds = (data ?? []).map((r) => r.detection_id).filter(Boolean) as string[];
+  let detections: Record<string, DiagnosisResult> = {};
+  if (detectionIds.length) {
+    const { data: dets } = await client
+      .from("detections")
+      .select("id,disease,confidence,risk_level,affected_part,rationale,agent_trace,created_at,crop_id")
+      .in("id", detectionIds);
+    for (const row of dets ?? []) {
+      const d = rowToDiagnosis(row as Record<string, unknown>);
+      detections[d.id] = d;
+    }
+  }
+
   return (data ?? []).map((row) => {
-    const payload = extractPayload(row.agent_trace);
-    const recs = (payload?.recommendations as DiagnosisResult["recommendations"]) ?? [];
-    const weather = (payload?.weather as DiagnosisResult["weather"]) ?? {
-      temperature_c: 28,
-      humidity_pct: 75,
-      rain_mm: 0,
-      wind_kmh: 10,
-      condition: "—",
-      climate_risk: "medio" as const,
-      source: "stored",
-      location: "Manabí",
-    };
+    const det = row.detection_id ? detections[row.detection_id as string] : null;
     return {
       id: row.id as string,
+      detection_id: (row.detection_id as string) ?? "",
       created_at: row.created_at as string,
-      detection: {
-        disease: row.disease as string,
-        crop: "Cultivo",
-        confidence: Number(row.confidence),
-        affected_part: (row.affected_part as string) ?? "hoja",
-        risk_level: row.risk_level as DiagnosisResult["detection"]["risk_level"],
-        rationale: (row.rationale as string) ?? "",
-        alternatives: payload?.alternatives as DiagnosisResult["detection"]["alternatives"],
-      },
-      weather,
-      diagnosis: (payload?.diagnosis as string) ?? "",
-      recommendations: recs,
-      follow_up: (payload?.follow_up as DiagnosisResult["follow_up"]) ?? {
-        check_in_hours: 72,
-        steps: [],
-      },
-      agent_trace: (row.agent_trace as DiagnosisResult["agent_trace"]) ?? [],
-      demo: Boolean(payload?.demo),
-    } satisfies DiagnosisResult;
+      summary: (row.summary as string) ?? "",
+      storage_path: (row.storage_path as string) ?? null,
+      disease: det?.detection.disease ?? "Diagnóstico",
+      crop: det?.detection.crop ?? "Cultivo",
+      confidence: det?.detection.confidence ?? 0,
+      risk_level: det?.detection.risk_level ?? ("medio" as const),
+      pdf_url: `/api/diagnose/${row.detection_id}/pdf`,
+    };
   });
+}
+
+export async function getProfile(client: SupabaseClient, userId: string) {
+  const { data, error } = await client
+    .from("profiles")
+    .select("id,full_name,phone,province,default_crop,created_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    return {
+      id: userId,
+      full_name: null,
+      phone: null,
+      province: "Manabí",
+      default_crop: null,
+    };
+  }
+  return {
+    id: data.id as string,
+    full_name: (data.full_name as string) ?? null,
+    phone: (data.phone as string) ?? null,
+    province: (data.province as string) ?? "Manabí",
+    default_crop: (data.default_crop as string) ?? null,
+    created_at: data.created_at as string | undefined,
+  };
+}
+
+export async function updateProfile(
+  client: SupabaseClient,
+  userId: string,
+  payload: {
+    full_name?: string;
+    phone?: string;
+    province?: string;
+    default_crop?: string | null;
+  }
+) {
+  await upsertProfile(client, userId, payload.full_name);
+  const patch: Record<string, unknown> = { id: userId };
+  if (payload.full_name !== undefined) patch.full_name = payload.full_name;
+  if (payload.phone !== undefined) patch.phone = payload.phone;
+  if (payload.province !== undefined) patch.province = payload.province;
+  if (payload.default_crop !== undefined) patch.default_crop = payload.default_crop;
+
+  const { data, error } = await client.from("profiles").upsert(patch).select().single();
+  if (error) throw error;
+  return {
+    id: data.id as string,
+    full_name: (data.full_name as string) ?? null,
+    phone: (data.phone as string) ?? null,
+    province: (data.province as string) ?? "Manabí",
+    default_crop: (data.default_crop as string) ?? null,
+    created_at: data.created_at as string | undefined,
+  };
 }

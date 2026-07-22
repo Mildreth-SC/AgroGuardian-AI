@@ -1,17 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles } from "lucide-react";
+import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { AiDisclaimer } from "@/components/ai/AiDisclaimer";
 import { DiagnosisSources } from "@/components/ai/DiagnosisSources";
 import { AgentProgress, type AgentStep } from "@/components/scan/AgentProgress";
 import { CameraCapture, ImageDropzone } from "@/components/scan/CameraCapture";
 import {
   diagnoseImageStream,
+  getCrops,
+  getFarms,
+  getProfileSettings,
   pdfUrl,
   type AgentTrace,
+  type Crop,
   type DiagnosisResult,
+  type Farm,
 } from "@/lib/api";
 import { SAMPLE_IMAGES } from "@/lib/samples";
 import { cn, pct, riskColor } from "@/lib/utils";
@@ -22,10 +27,34 @@ export default function EscanearPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [crop, setCrop] = useState("Plátano");
+  const [farms, setFarms] = useState<Farm[]>([]);
+  const [crops, setCrops] = useState<Crop[]>([]);
+  const [farmId, setFarmId] = useState<string>("");
+  const [cropId, setCropId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [steps, setSteps] = useState<AgentStep[]>([]);
+
+  useEffect(() => {
+    getProfileSettings()
+      .then((p) => {
+        if (p.default_crop) setCrop(p.default_crop);
+      })
+      .catch(() => {});
+    Promise.all([getFarms(), getCrops()])
+      .then(([f, c]) => {
+        setFarms(f);
+        setCrops(c);
+        if (f[0]) setFarmId(f[0].id);
+      })
+      .catch(() => {});
+  }, []);
+
+  const farmCrops = useMemo(
+    () => (farmId ? crops.filter((c) => c.farm_id === farmId) : crops),
+    [crops, farmId]
+  );
 
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
 
@@ -69,7 +98,7 @@ export default function EscanearPage() {
         setSteps((prev) => [...prev.filter((s) => s.agent !== trace.agent), trace]);
       };
 
-      await diagnoseImageStream(file, { crop, lat, lon }, {
+      await diagnoseImageStream(file, { crop, lat, lon, farm_id: farmId || undefined, crop_id: cropId || undefined }, {
         onProgress: upsert,
         onResult: (data) => {
           setResult(data);
@@ -120,6 +149,43 @@ export default function EscanearPage() {
             ))}
           </div>
         </div>
+
+        {farms.length > 0 && (
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-ink/60">Finca (opcional)</span>
+              <select
+                value={farmId}
+                onChange={(e) => {
+                  setFarmId(e.target.value);
+                  setCropId("");
+                }}
+                className="w-full rounded-xl border border-forest/15 bg-white px-3 py-2 text-sm"
+              >
+                {farms.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-ink/60">Lote / cultivo (opcional)</span>
+              <select
+                value={cropId}
+                onChange={(e) => setCropId(e.target.value)}
+                className="w-full rounded-xl border border-forest/15 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">Sin vincular</option>
+                {farmCrops.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
 
         <div>
           <p className="text-xs font-medium text-ink/60 mb-2">Muestras demo (estilo PlantVillage)</p>
@@ -262,20 +328,33 @@ export default function EscanearPage() {
           </div>
 
           <div className="flex flex-wrap gap-2 pt-1">
+            {result.report_url && (
+              <p className="w-full flex items-center gap-1.5 text-xs text-leaf">
+                <CheckCircle2 className="h-4 w-4" />
+                Reporte PDF generado y guardado en tu historial.
+              </p>
+            )}
             <a
-              href={pdfUrl(result.id)}
+              href={result.report_url ?? pdfUrl(result.id)}
               className="rounded-xl border border-forest/15 bg-white px-4 py-2.5 text-sm hover:bg-mist"
               target="_blank"
               rel="noreferrer"
             >
-              Descargar reporte
+              Descargar PDF
             </a>
             <button
               type="button"
-              onClick={() => router.push("/diagnosticos")}
+              onClick={() => router.push(`/diagnosticos/${result.id}`)}
+              className="rounded-xl border border-forest/15 bg-white px-4 py-2.5 text-sm hover:bg-mist"
+            >
+              Ver detalle
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/reportes")}
               className="rounded-xl bg-leaf px-4 py-2.5 text-sm font-medium text-white hover:bg-leaf-dark"
             >
-              Ver historial
+              Ver reportes
             </button>
           </div>
         </div>

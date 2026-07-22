@@ -175,7 +175,7 @@ export async function runDiagnosisPipeline(
   pushTrace({
     agent: "Report Agent",
     status: "ok",
-    summary: "Caso empaquetado para historial y PDF",
+    summary: "PDF generado y reporte registrado",
     duration_ms: 5,
     data: { recommendations: recommendations.length },
   });

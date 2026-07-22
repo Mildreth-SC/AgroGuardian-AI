@@ -51,6 +51,34 @@ export type DiagnosisResult = {
   follow_up: FollowUpPlan;
   agent_trace: AgentTrace[];
   demo: boolean;
+  image_path?: string | null;
+  report_id?: string | null;
+  report_url?: string | null;
+  farm_id?: string | null;
+  crop_id?: string | null;
+  farm_name?: string | null;
+};
+
+export type ReportItem = {
+  id: string;
+  detection_id: string;
+  created_at: string;
+  summary: string;
+  storage_path: string | null;
+  disease: string;
+  crop: string;
+  confidence: number;
+  risk_level: RiskLevel;
+  pdf_url: string;
+};
+
+export type UserProfile = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  province: string | null;
+  default_crop: string | null;
+  created_at?: string;
 };
 
 export type OnboardingPayload = {

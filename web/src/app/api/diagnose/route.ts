@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserId } from "@/lib/server/auth";
 import { getConfig } from "@/lib/server/config";
-import { getCaseStore } from "@/lib/server/demo-data";
+import { persistDiagnosisArtifacts } from "@/lib/server/diagnosis-persistence";
 import { runDiagnosisPipeline } from "@/lib/server/orchestrator";
-import { getAdminClient, saveDetection } from "@/lib/server/supabase-admin";
 
 export async function POST(req: NextRequest) {
   const { userId, error } = await requireUserId();
@@ -18,6 +17,8 @@ export async function POST(req: NextRequest) {
   const crop = form.get("crop")?.toString() || null;
   const latRaw = form.get("lat")?.toString();
   const lonRaw = form.get("lon")?.toString();
+  const farmId = form.get("farm_id")?.toString() || null;
+  const cropId = form.get("crop_id")?.toString() || null;
   const bytes = Buffer.from(await file.arrayBuffer());
 
   if (bytes.length < 100) {
@@ -31,23 +32,18 @@ export async function POST(req: NextRequest) {
   const mime = file.type || "image/jpeg";
 
   try {
-    const result = await runDiagnosisPipeline(cfg, bytes, {
+    let result = await runDiagnosisPipeline(cfg, bytes, {
       mime,
       cropHint: crop,
       lat: latRaw ? Number(latRaw) : null,
       lon: lonRaw ? Number(lonRaw) : null,
     });
 
-    getCaseStore().set(result.id, result);
-
-    const client = getAdminClient(cfg);
-    if (client) {
-      try {
-        await saveDetection(client, userId, result);
-      } catch {
-        /* DB optional */
-      }
-    }
+    result = await persistDiagnosisArtifacts(cfg, userId, result, bytes, {
+      farm_id: farmId,
+      crop_id: cropId,
+      mime,
+    });
 
     return NextResponse.json(result);
   } catch (e) {

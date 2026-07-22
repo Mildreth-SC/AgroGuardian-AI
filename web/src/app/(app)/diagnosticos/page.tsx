@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { History, List, Share2 } from "lucide-react";
@@ -89,8 +90,14 @@ export default function DiagnosticosPage() {
                 <p className="text-sm text-ink/75 mt-2 line-clamp-2">{c.diagnosis}</p>
               )}
               <div className="flex flex-wrap gap-2 mt-3">
+                <Link
+                  href={`/diagnosticos/${c.id}`}
+                  className="text-xs text-leaf font-medium hover:underline"
+                >
+                  Ver
+                </Link>
                 <a
-                  href={pdfUrl(c.id)}
+                  href={c.report_url ?? pdfUrl(c.id)}
                   target="_blank"
                   rel="noreferrer"
                   className="text-xs text-leaf font-medium hover:underline"
@@ -151,8 +158,14 @@ export default function DiagnosticosPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
+                    <Link
+                      href={`/diagnosticos/${c.id}`}
+                      className="text-leaf hover:underline text-xs font-medium mr-2"
+                    >
+                      Ver
+                    </Link>
                     <a
-                      href={pdfUrl(c.id)}
+                      href={c.report_url ?? pdfUrl(c.id)}
                       target="_blank"
                       rel="noreferrer"
                       className="text-leaf hover:underline text-xs font-medium"
