@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { Bell, ChevronDown, HelpCircle } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 import { useEffect, useState } from "react";
-import { getFarms, type Farm } from "@/lib/api";
-import { ALERTS } from "@/lib/mock-data";
+import { getFarms, getNotifications, type AppNotification, type Farm } from "@/lib/api";
 import { usePreferences } from "@/providers/preferences-provider";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +23,8 @@ export function TopBar() {
   const [farms, setFarms] = useState<Farm[]>([]);
   const [farmId, setFarmId] = useState<string>("");
   const [showAlerts, setShowAlerts] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     getFarms()
@@ -32,11 +36,19 @@ export function TopBar() {
         setFarms([{ id: "demo", name: "Finca La Esperanza", lat: -1.0547, lng: -80.4545, area_ha: 1, health_status: "riesgo" }]);
         setFarmId("demo");
       });
+    getNotifications()
+      .then((r) => {
+        setNotifications(r.items.slice(0, 5));
+        setUnread(r.unread);
+      })
+      .catch(() => {
+        setNotifications([]);
+        setUnread(0);
+      });
   }, [farmId]);
 
   const firstName = user?.firstName || user?.username || "Agricultor";
   const selectedFarm = farms.find((f) => f.id === farmId) ?? farms[0];
-  const unread = ALERTS.length;
 
   return (
     <header className="sticky top-0 z-40 border-b border-forest/8 bg-cream/90 backdrop-blur-md">
@@ -89,14 +101,38 @@ export function TopBar() {
                   onClick={() => setShowAlerts(false)}
                 />
                 <div className="absolute right-0 top-11 z-50 w-72 rounded-2xl border border-forest/10 bg-white p-3 shadow-xl">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-ink/45 mb-2">
-                    Alertas recientes
-                  </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink/45">
+                      Notificaciones
+                    </p>
+                    <Link
+                      href="/notificaciones"
+                      onClick={() => setShowAlerts(false)}
+                      className="text-[10px] text-leaf font-medium hover:underline"
+                    >
+                      Ver todas
+                    </Link>
+                  </div>
                   <ul className="space-y-2 max-h-64 overflow-y-auto">
-                    {ALERTS.map((a) => (
-                      <li key={a.id} className="rounded-xl bg-mist/70 px-3 py-2 text-xs">
-                        <p className="font-medium text-ink">{a.title}</p>
-                        <p className="text-ink/50 mt-0.5">{a.detail}</p>
+                    {notifications.length === 0 && (
+                      <li className="text-xs text-ink/50 px-2 py-3 text-center">Sin alertas</li>
+                    )}
+                    {notifications.map((a) => (
+                      <li key={a.id}>
+                        <Link
+                          href={a.href ?? "/notificaciones"}
+                          onClick={() => setShowAlerts(false)}
+                          className={cn(
+                            "block rounded-xl px-3 py-2 text-xs",
+                            a.read ? "bg-mist/50" : "bg-leaf/10 border border-leaf/15"
+                          )}
+                        >
+                          <p className="font-medium text-ink">{a.title}</p>
+                          {a.body && <p className="text-ink/50 mt-0.5 line-clamp-2">{a.body}</p>}
+                          <p className="text-ink/35 mt-1">
+                            {formatDistanceToNow(new Date(a.created_at), { addSuffix: true, locale: es })}
+                          </p>
+                        </Link>
                       </li>
                     ))}
                   </ul>

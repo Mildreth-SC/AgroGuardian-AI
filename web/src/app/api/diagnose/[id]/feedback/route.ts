@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUserId } from "@/lib/server/auth";
 import { getConfig } from "@/lib/server/config";
 import { getCaseById } from "@/lib/server/diagnosis-persistence";
+import { getCaseStore } from "@/lib/server/demo-data";
 import { getAdminClient, saveDetectionFeedback } from "@/lib/server/supabase-admin";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -31,6 +32,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const existing = await getCaseById(cfg, userId, id);
     if (existing) {
       existing.feedback = feedback;
+      getCaseStore().set(id, existing);
     }
     return NextResponse.json({ ok: true, feedback });
   } catch (e) {

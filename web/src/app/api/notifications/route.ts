@@ -15,16 +15,12 @@ export async function GET() {
   if (error || !userId) return error!;
 
   const memoryCases = [...getCaseStore().values()];
-  const followUps = buildFollowUpNotifications(memoryCases);
   const cfg = getConfig();
   const client = getAdminClient(cfg);
 
   if (!client) {
-    return NextResponse.json({
-      items: followUps,
-      unread: followUps.length,
-      mode: "demo",
-    });
+    const items = buildFollowUpNotifications(memoryCases);
+    return NextResponse.json({ items, unread: items.length, mode: "demo" });
   }
 
   try {
@@ -32,28 +28,20 @@ export async function GET() {
       listNotifications(client, userId),
       listDetections(client, userId),
     ]);
-    const mergedFollowUps = buildFollowUpNotifications(dbCases.length ? dbCases : memoryCases);
-    const syntheticIds = new Set(mergedFollowUps.map((f) => f.id));
-    const items = [
-      ...mergedFollowUps,
-      ...stored.filter((n) => !syntheticIds.has(n.id)),
-    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-    const unread =
-      items.filter((n) => !n.read).length +
-      stored.filter((n) => !n.read).length -
-      stored.filter((n) => !n.read && items.some((i) => i.id === n.id && i.read === n.read)).length;
-
-    return NextResponse.json({
-      items,
-      unread: items.filter((n) => !n.read).length,
-      mode: "supabase",
-    });
+    const cases = dbCases.length ? dbCases : memoryCases;
+    const followUps = buildFollowUpNotifications(cases);
+    const items = [...followUps, ...stored].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    const unread = items.filter((n) => !n.read).length;
+    return NextResponse.json({ items, unread, mode: "supabase" });
   } catch (e) {
     if (isDbMissingError(e)) {
-      return NextResponse.json({ items: followUps, unread: followUps.length, mode: "demo-fallback" });
+      const items = buildFollowUpNotifications(memoryCases);
+      return NextResponse.json({ items, unread: items.length, mode: "demo-fallback" });
     }
-    return NextResponse.json({ items: followUps, unread: followUps.length, mode: "fallback" });
+    const items = buildFollowUpNotifications(memoryCases);
+    return NextResponse.json({ items, unread: items.length, mode: "fallback" });
   }
 }
 

@@ -6,6 +6,8 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, Download, Share2 } from "lucide-react";
 import { AiDisclaimer } from "@/components/ai/AiDisclaimer";
 import { DiagnosisSources } from "@/components/ai/DiagnosisSources";
+import { FeedbackPanel } from "@/components/diagnostics/FeedbackPanel";
+import { RecommendationsChecklist } from "@/components/diagnostics/RecommendationsChecklist";
 import { AgentProgress } from "@/components/scan/AgentProgress";
 import { getDiagnosisById, pdfUrl, type DiagnosisResult } from "@/lib/api";
 import { diagnosisShareText, whatsAppShare } from "@/lib/share";
@@ -44,9 +46,18 @@ export default function DiagnosticoDetailPage() {
     );
   }
 
+  const followDue = new Date(result.created_at).getTime() + result.follow_up.check_in_hours * 3600000;
+  const followPending = Date.now() >= followDue;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-fade-up">
       <BackLink />
+
+      {followPending && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Seguimiento pendiente — revisa la planta y toma una nueva foto de comparación.
+        </p>
+      )}
 
       <div className="rounded-2xl border border-forest/10 bg-white p-4 sm:p-6 space-y-4 shadow-sm">
         <AgentProgress steps={result.agent_trace} active={false} />
@@ -84,21 +95,24 @@ export default function DiagnosticoDetailPage() {
           <Metric label="Clima" value={result.weather.condition} />
         </div>
 
-        <div>
-          <h3 className="font-medium text-forest mb-2">Recomendaciones</h3>
-          <AiDisclaimer compact />
-          <ul className="space-y-2 mt-3">
-            {result.recommendations.map((r, idx) => (
-              <li key={idx} className="rounded-xl border border-forest/10 bg-mist/60 px-3 py-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">{r.title}</p>
-                  <span className="text-[10px] uppercase tracking-wide text-ink/40">{r.timeframe}</span>
-                </div>
-                <p className="text-xs text-ink/60 mt-0.5">{r.detail}</p>
-              </li>
+        <RecommendationsChecklist
+          recommendations={result.recommendations}
+          onChange={(recs) => setResult((r) => (r ? { ...r, recommendations: recs } : r))}
+        />
+
+        <div className="rounded-xl border border-forest/10 bg-mist/40 px-3 py-3 text-sm">
+          <p className="font-medium text-forest">Plan de seguimiento</p>
+          <p className="text-xs text-ink/55 mt-1">
+            Revisión sugerida en {result.follow_up.check_in_hours} h
+          </p>
+          <ul className="mt-2 space-y-1 text-xs text-ink/70">
+            {result.follow_up.steps.map((s) => (
+              <li key={s}>• {s}</li>
             ))}
           </ul>
         </div>
+
+        <FeedbackPanel detectionId={result.id} initial={result.feedback} />
 
         <div className="flex flex-wrap gap-2 pt-1">
           <a
@@ -110,6 +124,12 @@ export default function DiagnosticoDetailPage() {
             <Download className="h-4 w-4" />
             Descargar PDF
           </a>
+          <Link
+            href="/escanear"
+            className="rounded-xl border border-forest/15 bg-white px-4 py-2.5 text-sm hover:bg-mist"
+          >
+            Foto de seguimiento
+          </Link>
           <button
             type="button"
             onClick={() =>
@@ -127,6 +147,8 @@ export default function DiagnosticoDetailPage() {
             WhatsApp
           </button>
         </div>
+
+        <AiDisclaimer compact />
       </div>
     </div>
   );

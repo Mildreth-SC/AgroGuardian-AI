@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { AiDisclaimer } from "@/components/ai/AiDisclaimer";
 import { DiagnosisSources } from "@/components/ai/DiagnosisSources";
+import { RecommendationsChecklist } from "@/components/diagnostics/RecommendationsChecklist";
 import { AgentProgress, type AgentStep } from "@/components/scan/AgentProgress";
 import { CameraCapture, ImageDropzone } from "@/components/scan/CameraCapture";
 import {
@@ -311,21 +312,10 @@ export default function EscanearPage() {
             <Metric label="Clima" value={result.weather.condition} />
           </div>
 
-          <div>
-            <h3 className="font-medium text-forest mb-2">IA recomienda</h3>
-            <AiDisclaimer compact />
-            <ul className="space-y-2 mt-3">
-              {result.recommendations.map((r, idx) => (
-                <li key={idx} className="rounded-xl border border-forest/10 bg-mist/60 px-3 py-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">{r.title}</p>
-                    <span className="text-[10px] uppercase tracking-wide text-ink/40">{r.timeframe}</span>
-                  </div>
-                  <p className="text-xs text-ink/60 mt-0.5">{r.detail}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <RecommendationsChecklist
+            recommendations={result.recommendations}
+            onChange={(recs) => setResult((r) => (r ? { ...r, recommendations: recs } : r))}
+          />
 
           <div className="flex flex-wrap gap-2 pt-1">
             {result.report_url && (

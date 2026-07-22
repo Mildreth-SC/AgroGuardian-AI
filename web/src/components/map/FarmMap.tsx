@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { getFarms, type Farm } from "@/lib/api";
+import { getFarms, type Farm, type MapCasePin } from "@/lib/api";
 
 const MapInner = dynamic(() => import("./FarmMapInner"), {
   ssr: false,
@@ -24,9 +24,11 @@ export type MapFarm = {
 export function FarmMap({
   height = 320,
   farms: farmsProp,
+  cases: casesProp,
 }: {
   height?: number;
   farms?: MapFarm[];
+  cases?: MapCasePin[];
 }) {
   const [fetched, setFetched] = useState<MapFarm[]>([]);
 
@@ -54,5 +56,7 @@ export function FarmMap({
     };
   }, [farmsProp]);
 
-  return <MapInner farms={farmsProp ?? fetched} height={height} />;
+  return (
+    <MapInner farms={farmsProp ?? fetched} cases={casesProp ?? []} height={height} />
+  );
 }

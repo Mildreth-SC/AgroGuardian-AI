@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { AppConfig, hasSupabase } from "./config";
-import type { DiagnosisResult, AppNotification, MapCasePin } from "@/types/api";
+import type { DiagnosisResult, AppNotification, MapCasePin, OnboardingPayload } from "@/types/api";
 
 export function getAdminClient(cfg: AppConfig): SupabaseClient | null {
   if (!hasSupabase(cfg)) return null;
