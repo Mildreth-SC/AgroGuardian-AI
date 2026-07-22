@@ -190,5 +190,7 @@ export async function runDiagnosisPipeline(
     follow_up,
     agent_trace: traces,
     demo: useDemo,
+    lat: opts.lat ?? null,
+    lon: opts.lon ?? null,
   };
 }

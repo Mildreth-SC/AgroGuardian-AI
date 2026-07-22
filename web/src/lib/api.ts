@@ -37,10 +37,12 @@ export type DiagnosisResult = {
   };
   diagnosis: string;
   recommendations: {
+    id?: string;
     title: string;
     detail: string;
     priority: number;
     timeframe: string;
+    completed?: boolean;
   }[];
   follow_up: {
     check_in_hours: number;
@@ -54,6 +56,13 @@ export type DiagnosisResult = {
   farm_id?: string | null;
   crop_id?: string | null;
   farm_name?: string | null;
+  lat?: number | null;
+  lon?: number | null;
+  feedback?: {
+    correct: boolean | null;
+    comment?: string | null;
+    at?: string | null;
+  } | null;
 };
 
 export type WeatherSnapshot = DiagnosisResult["weather"];
@@ -423,6 +432,27 @@ export type UserProfile = {
   mode?: string;
 };
 
+export type AppNotification = {
+  id: string;
+  title: string;
+  body: string | null;
+  severity: string;
+  read: boolean;
+  created_at: string;
+  synthetic?: boolean;
+  href?: string | null;
+};
+
+export type MapCasePin = {
+  id: string;
+  lat: number;
+  lng: number;
+  disease: string;
+  crop: string;
+  risk_level: RiskLevel;
+  created_at: string;
+};
+
 export type OutbreakAlert = {
   id: string;
   disease: string;
@@ -454,4 +484,51 @@ export async function chatAssistant(message: string, history: { role: string; co
 
 export function pdfUrl(caseId: string) {
   return `${apiBase()}/api/diagnose/${caseId}/pdf`;
+}
+
+export async function getNotifications() {
+  const res = await apiFetch("/api/notifications", { cache: "no-store" });
+  return res.json() as Promise<{ items: AppNotification[]; unread: number }>;
+}
+
+export async function markNotificationRead(id: string) {
+  const res = await apiFetch(`/api/notifications/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+  });
+  return res.json();
+}
+
+export async function markAllNotificationsRead() {
+  const res = await apiFetch("/api/notifications", { method: "PATCH" });
+  return res.json();
+}
+
+export async function updateRecommendation(id: string, completed: boolean) {
+  const res = await apiFetch(`/api/recommendations/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ completed }),
+  });
+  return res.json();
+}
+
+export async function submitDiagnosisFeedback(
+  detectionId: string,
+  payload: { correct: boolean; comment?: string }
+) {
+  const res = await apiFetch(`/api/diagnose/${encodeURIComponent(detectionId)}/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "No se pudo enviar feedback");
+  }
+  return res.json() as Promise<{ ok: boolean; feedback: DiagnosisResult["feedback"] }>;
+}
+
+export async function getMapCases() {
+  const res = await apiFetch("/api/map/cases", { cache: "no-store" });
+  return res.json() as Promise<MapCasePin[]>;
 }

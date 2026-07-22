@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { AppConfig, hasSupabase } from "./config";
-import type { DiagnosisResult, OnboardingPayload } from "@/types/api";
+import type { DiagnosisResult, AppNotification, MapCasePin } from "@/types/api";
 
 export function getAdminClient(cfg: AppConfig): SupabaseClient | null {
   if (!hasSupabase(cfg)) return null;
@@ -397,6 +397,8 @@ export async function saveDetection(
       risk_level: det.risk_level,
       affected_part: det.affected_part,
       rationale: det.rationale,
+      lat: result.lat ?? null,
+      lon: result.lon ?? null,
       agent_trace: [...result.agent_trace, payloadTrace],
     })
     .select("id")
@@ -521,6 +523,25 @@ function extractPayload(trace: unknown): Record<string, unknown> | null {
   return null;
 }
 
+const DETECTION_FIELDS =
+  "id,disease,confidence,risk_level,affected_part,rationale,agent_trace,created_at,crop_id,lat,lon,feedback_correct,feedback_comment,feedback_at";
+
+async function fetchRecommendationsForDetection(client: SupabaseClient, detectionId: string) {
+  const { data } = await client
+    .from("recommendations")
+    .select("id,title,detail,priority,timeframe,completed")
+    .eq("detection_id", detectionId)
+    .order("priority", { ascending: true });
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    title: r.title as string,
+    detail: r.detail as string,
+    priority: Number(r.priority ?? 1),
+    timeframe: (r.timeframe as string) ?? "",
+    completed: Boolean(r.completed),
+  }));
+}
+
 function rowToDiagnosis(row: Record<string, unknown>): DiagnosisResult {
   const payload = extractPayload(row.agent_trace);
   const recs = (payload?.recommendations as DiagnosisResult["recommendations"]) ?? [];
@@ -534,6 +555,7 @@ function rowToDiagnosis(row: Record<string, unknown>): DiagnosisResult {
     source: "stored",
     location: "Manabí",
   };
+  const feedbackCorrect = row.feedback_correct;
   return {
     id: row.id as string,
     created_at: row.created_at as string,
@@ -559,7 +581,23 @@ function rowToDiagnosis(row: Record<string, unknown>): DiagnosisResult {
     report_url: (payload?.report_url as string) ?? `/api/diagnose/${row.id}/pdf`,
     farm_id: (payload?.farm_id as string) ?? null,
     crop_id: (row.crop_id as string) ?? (payload?.crop_id as string) ?? null,
+    lat: row.lat != null ? Number(row.lat) : null,
+    lon: row.lon != null ? Number(row.lon) : null,
+    feedback:
+      feedbackCorrect === null || feedbackCorrect === undefined
+        ? null
+        : {
+            correct: feedbackCorrect as boolean,
+            comment: (row.feedback_comment as string) ?? null,
+            at: (row.feedback_at as string) ?? null,
+          },
   };
+}
+
+async function enrichDiagnosis(client: SupabaseClient, base: DiagnosisResult) {
+  const recs = await fetchRecommendationsForDetection(client, base.id);
+  if (!recs.length) return base;
+  return { ...base, recommendations: recs };
 }
 
 export async function getDetectionById(
@@ -569,20 +607,20 @@ export async function getDetectionById(
 ) {
   const { data, error } = await client
     .from("detections")
-    .select("id,disease,confidence,risk_level,affected_part,rationale,agent_trace,created_at,crop_id")
+    .select(DETECTION_FIELDS)
     .eq("owner_id", userId)
     .eq("id", detectionId)
     .maybeSingle();
 
   if (error) throw error;
   if (!data) return null;
-  return rowToDiagnosis(data as Record<string, unknown>);
+  return enrichDiagnosis(client, rowToDiagnosis(data as Record<string, unknown>));
 }
 
 export async function listDetections(client: SupabaseClient, userId: string) {
   const { data, error } = await client
     .from("detections")
-    .select("id,disease,confidence,risk_level,affected_part,rationale,agent_trace,created_at,crop_id")
+    .select(DETECTION_FIELDS)
     .eq("owner_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -607,7 +645,7 @@ export async function listReports(client: SupabaseClient, userId: string) {
   if (detectionIds.length) {
     const { data: dets } = await client
       .from("detections")
-      .select("id,disease,confidence,risk_level,affected_part,rationale,agent_trace,created_at,crop_id")
+      .select(DETECTION_FIELDS)
       .in("id", detectionIds);
     for (const row of dets ?? []) {
       const d = rowToDiagnosis(row as Record<string, unknown>);
@@ -685,4 +723,161 @@ export async function updateProfile(
     default_crop: (data.default_crop as string) ?? null,
     created_at: data.created_at as string | undefined,
   };
+}
+
+export async function updateRecommendationCompleted(
+  client: SupabaseClient,
+  userId: string,
+  recommendationId: string,
+  completed: boolean
+) {
+  const { data: rec, error: recErr } = await client
+    .from("recommendations")
+    .select("id,detection_id")
+    .eq("id", recommendationId)
+    .maybeSingle();
+  if (recErr) throw recErr;
+  if (!rec?.detection_id) throw new Error("Recomendación no encontrada");
+
+  const { data: det } = await client
+    .from("detections")
+    .select("id")
+    .eq("id", rec.detection_id)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  if (!det) throw new Error("No autorizado");
+
+  const { data, error } = await client
+    .from("recommendations")
+    .update({ completed })
+    .eq("id", recommendationId)
+    .select("id,title,detail,priority,timeframe,completed")
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id as string,
+    title: data.title as string,
+    detail: data.detail as string,
+    priority: Number(data.priority ?? 1),
+    timeframe: (data.timeframe as string) ?? "",
+    completed: Boolean(data.completed),
+  };
+}
+
+export async function saveDetectionFeedback(
+  client: SupabaseClient,
+  userId: string,
+  detectionId: string,
+  payload: { correct: boolean; comment?: string }
+) {
+  const { data, error } = await client
+    .from("detections")
+    .update({
+      feedback_correct: payload.correct,
+      feedback_comment: payload.comment ?? null,
+      feedback_at: new Date().toISOString(),
+    })
+    .eq("id", detectionId)
+    .eq("owner_id", userId)
+    .select("feedback_correct,feedback_comment,feedback_at")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Diagnóstico no encontrado");
+  return {
+    correct: data.feedback_correct as boolean,
+    comment: (data.feedback_comment as string) ?? null,
+    at: (data.feedback_at as string) ?? null,
+  };
+}
+
+export function buildFollowUpNotifications(cases: DiagnosisResult[]): AppNotification[] {
+  const now = Date.now();
+  return cases
+    .filter((c) => {
+      const due =
+        new Date(c.created_at).getTime() + c.follow_up.check_in_hours * 60 * 60 * 1000;
+      return due <= now;
+    })
+    .slice(0, 10)
+    .map((c) => ({
+      id: `followup-${c.id}`,
+      title: "Seguimiento pendiente",
+      body: `Revisar ${c.detection.disease} en ${c.detection.crop}`,
+      severity:
+        c.detection.risk_level === "alto" || c.detection.risk_level === "critico" ? "alto" : "medio",
+      read: false,
+      created_at: new Date(
+        new Date(c.created_at).getTime() + c.follow_up.check_in_hours * 60 * 60 * 1000
+      ).toISOString(),
+      synthetic: true,
+      href: `/diagnosticos/${c.id}`,
+    }))
+    .filter((n) => new Date(n.created_at).getTime() <= now);
+}
+
+export async function listNotifications(client: SupabaseClient, userId: string) {
+  const { data, error } = await client
+    .from("notifications")
+    .select("id,title,body,severity,read,created_at")
+    .eq("owner_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  if (error) throw error;
+
+  return (data ?? []).map((n) => ({
+    id: n.id as string,
+    title: n.title as string,
+    body: (n.body as string) ?? null,
+    severity: (n.severity as string) ?? "info",
+    read: Boolean(n.read),
+    created_at: n.created_at as string,
+    href: null,
+  })) satisfies AppNotification[];
+}
+
+export async function markNotificationRead(
+  client: SupabaseClient,
+  userId: string,
+  notificationId: string
+) {
+  const { error } = await client
+    .from("notifications")
+    .update({ read: true })
+    .eq("id", notificationId)
+    .eq("owner_id", userId);
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(client: SupabaseClient, userId: string) {
+  const { error } = await client
+    .from("notifications")
+    .update({ read: true })
+    .eq("owner_id", userId)
+    .eq("read", false);
+  if (error) throw error;
+}
+
+export async function listMapCasePins(client: SupabaseClient, userId: string): Promise<MapCasePin[]> {
+  const { data, error } = await client
+    .from("detections")
+    .select("id,disease,risk_level,agent_trace,created_at,lat,lon")
+    .eq("owner_id", userId)
+    .not("lat", "is", null)
+    .not("lon", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const payload = extractPayload(row.agent_trace);
+    return {
+      id: row.id as string,
+      lat: Number(row.lat),
+      lng: Number(row.lon),
+      disease: row.disease as string,
+      crop: (payload?.crop as string) ?? "Cultivo",
+      risk_level: row.risk_level as MapCasePin["risk_level"],
+      created_at: row.created_at as string,
+    };
+  });
 }

@@ -83,6 +83,8 @@ export async function persistDiagnosisArtifacts(
       crop_id: enriched.crop_id ?? null,
       farm_id: enriched.farm_id ?? null,
     });
+    const withRecs = await getDetectionById(client, userId, enriched.id);
+    if (withRecs) enriched = withRecs;
   } catch {
     /* DB optional */
   }
